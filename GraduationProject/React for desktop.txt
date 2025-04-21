@@ -1,0 +1,9 @@
+Set-ExecutionPolicy Unrestricted
+npm install -g npm@11.3.0
+npm install -g yarn
+npm install -g concurrently
+npm install -g wait-on
+yarn install
+yarn add -D electron electron-builder concurrently wait-on
+npm i -g electron
+yarn add electron-is-dev

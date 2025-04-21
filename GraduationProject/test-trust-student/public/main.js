@@ -32,7 +32,7 @@ function createWindow() {
     remoteMain.enable(mainWindow.webContents);
 
     // Load the app URL with better error handling
-    const startUrl = process.env.DEV_URL || 'http://localhost:3001';
+    const startUrl = process.env.DEV_URL || 'http://localhost:3000';
     
     mainWindow.loadURL(startUrl).catch(err => {
         console.error('Failed to load URL:', err);

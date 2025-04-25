@@ -264,12 +264,12 @@ h1 {
 }
 
 .shape-2:hover {
-  background: radial-gradient(circle, #BFDBF7 0%, transparent 50%);
+  background: radial-gradient(circle, #0C1C22 0%, transparent 50%);
   box-shadow: 0 0 100px #BFDBF7;
 }
 
 .shape-3:hover {
-  background: radial-gradient(circle, #0C1C22 0%, transparent 50%);
+  background: radial-gradient(circle, #81b6e7 0%, transparent 50%);
   box-shadow: 0 0 100px #0C1C22;
 }
 

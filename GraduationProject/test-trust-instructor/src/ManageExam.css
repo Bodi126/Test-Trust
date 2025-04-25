@@ -1,4 +1,12 @@
-*{
-    margin: 0%;
-    padding: 0%;
-}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  html, body, #root, .App {
+    height: 100%;
+    background-color: #101619;
+    font-family: 'Abril Fatface', serif;
+    overflow: hidden;
+  }

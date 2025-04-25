@@ -1,23 +1,50 @@
-import logo from './logo.svg';
+import Logo from './images/Logo.jpg';
 import './App.css';
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <nav className='app-navbar'>
+        <div className="navbar-brand">
+          <img src={Logo} className="app-logo" alt="TestTrust Logo" />
+        </div>
+        
+        <ul className='nav-menu'>
+          <li className="nav-item">
+            <a href="/dive-into" className="nav-link">Dive Into</a>
+          </li>
+          <li className="nav-item">
+            <a href="/about-us" className="nav-link">About Us</a>
+          </li>
+          <li className="nav-item">
+            <a href="/join-us" className="nav-link">Join Us</a>
+          </li>
+        </ul>        
+      </nav>
+
+      <div className="content-container">
+        <header className="app-hero">
+          <h1>Welcome to the TestTrust Community!</h1>
+          <p className="hero-description">
+            A comprehensive learning management system where educators can:
+          </p>
+          <ul className="feature-list">
+            <li>Create and manage assignments</li>
+            <li>Grade submissions efficiently</li>
+            <li>Add students and organize exams</li>
+            <li>Monitor live exams in real-time</li>
+            <li>Contribute to our open-source platform</li>
+          </ul>
+          <button className="cta-button">Get Started Now</button>
+        </header>
+
+        <div className="shapes-container">
+          <div className="shape shape-1"></div>
+          <div className="shape shape-2"></div>
+          <div className="shape shape-3"></div>
+          <div className="shape shape-4"></div>
+        </div>
+      </div>
     </div>
   );
 }

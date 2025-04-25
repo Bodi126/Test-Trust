@@ -19,9 +19,10 @@ function createWindow() {
         minWidth: 800,
         minHeight: 600,
         show: false, // Don't show until ready
+        icon: path.join(__dirname, './Logo.png'), // Path to your icon
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false, // Note: Should be true in production
+            contextIsolation: true, // Note: Should be true in production
             enableRemoteModule: true,
             sandbox: false,
             preload: path.join(__dirname, 'preload.js') // Add a preload script

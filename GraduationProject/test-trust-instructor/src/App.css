@@ -214,7 +214,8 @@ h1 {
   height: 500px;
   background: radial-gradient(circle, #0C1C22 0%, transparent 70%);
   bottom: 10%;
-  left: 30%;
+  left: 35%;
+  top:27%;
   animation: 
     floatX 20s ease-in-out infinite alternate,
     floatY 16s ease-in-out infinite alternate-reverse,

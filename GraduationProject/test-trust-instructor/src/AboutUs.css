@@ -1,75 +1,49 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+.about-us-page {
+  padding: 40px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.about-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.about-header h1 {
+  font-size: 2.5rem;
+  color: #BFDBF7;
+  margin-bottom: 10px;
+}
+
+.about-header p {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.team-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .about-header h1 {
+    font-size: 2rem;
   }
   
-  html, body, #root, .App {
-    height: 100%;
-    background-color: #101619;
-    font-family: 'Abril Fatface', serif;
-    overflow: hidden;
+  .team-grid {
+    gap: 15px;
   }
-
-  /* ===== NAVBAR STYLES ===== */
-.app-navbar {
-  width: 95%;
-  max-width: 2000px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 30px;
-  background-color: #0C1C22;
-  border-radius: 50px;
-  border-color: #BFDBF7;
-  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.25);
-  margin: 10px auto;
-  z-index: 100;
-  position: relative;
-  transition: all 0.3s ease;
 }
 
-.app-navbar:hover {
-  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.3);
-}
-
-.navbar-brand {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.app-logo {
-  height: 40px;
-  width: auto;
-  border-radius: 4px;
-  transition: transform 0.3s ease;
-}
-
-.app-logo:hover {
-  transform: scale(1.05);
-}
-
-.nav-menu {
-  display: flex;
-  list-style: none;
-  gap: 25px;
-  color: #BFDBF7;
-  font-size: 18px;
-  margin-top: 10px;
-}
-
-.nav-link {
-  color: #BFDBF7;
-  text-decoration: none;
-  font-weight: 500;
-  padding: 8px 12px;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-  font-size: 1rem;
-}
-
-.nav-link:hover {
-  color: #ffffff;
-  text-shadow: 0 0 8px rgba(191, 219, 247, 0.6);
+@media (max-width: 480px) {
+  .about-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .about-header p {
+    font-size: 1rem;
+  }
 }

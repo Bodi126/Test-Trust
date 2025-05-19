@@ -6,7 +6,10 @@ import AboutUs from './AboutUs';
 import Login from './login';
 import Signup from './signup';
 import DiveInto from './DiveInto';
-import Dashboard from './Dashboard'; // Make sure to import your Dashboard component
+import Dashboard from './Dashboard'; 
+import AddExam1 from './AddExam1';
+import AddExam2 from './AddExam2';
+
 
 function App() {
   useEffect(() => {
@@ -90,6 +93,16 @@ function App() {
           <Route path="/dashboard" element={
             <div className="main-content">
               <Dashboard />
+            </div>
+          } />
+          <Route path="/addexam1" element={
+            <div className="main-content">
+              <AddExam1 />
+            </div>
+          } />
+          <Route path="/addexam2" element={
+            <div className="main-content">
+              <AddExam2 />
             </div>
           } />
         </Routes>

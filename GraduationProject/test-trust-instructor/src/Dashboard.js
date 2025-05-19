@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 
-
 function Dashboard() {
   const navigate = useNavigate();
   const [date, setDate] = useState(new Date());
@@ -23,15 +22,18 @@ function Dashboard() {
     { name: 'Literature', date: '2023-06-20', time: '10:00 AM' }
   ];
 
+  const handleAddExam = () => {
+    console.log('Navigating to Add Exam page'); // Debug log
+    navigate('/AddExam1');
+  };
+
   return (
     <div className="dashboard-container">
-
-
       {/* Left Sidebar - Navigation */}
       <div className="dashboard-sidebar">
         <h2 className="sidebar-title">Dashboard</h2>
         <nav className="sidebar-nav">
-          <button className="nav-button" onClick={() => navigate('/add-exam')}>
+          <button className="nav-button" onClick={handleAddExam}>
             <i className="fas fa-plus-circle"></i> Add Exam
           </button>
           <button className="nav-button" onClick={() => navigate('/manage-exam')}>
@@ -46,13 +48,13 @@ function Dashboard() {
           <button className="nav-button" onClick={() => navigate('/settings')}>
             <i className="fas fa-cog"></i> Settings
           </button>
-                {/* Back to Home Button */}
-            <button 
-                className="sidebar-back-button "
-                onClick={() => navigate('/')}
-            >
-                ← Back to Home
-            </button>
+          {/* Back to Home Button */}
+          <button 
+            className="sidebar-back-button"
+            onClick={() => navigate('/')}
+          >
+            ← Back to Home
+          </button>
         </nav>
       </div>
 

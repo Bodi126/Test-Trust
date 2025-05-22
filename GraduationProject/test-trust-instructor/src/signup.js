@@ -1,9 +1,32 @@
 import './signup.css';
-import React from 'react';
+import './valid.js';
+import React, { use, useEffect, useState  } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from './images/Logo.jpg';
+import valid from './valid.js';
 
 function Signup() {
+  const [values, setValues] = useState({
+    firstName:'',
+    lastName:'',
+    idNumber:'',
+    position:'',
+    email:'',
+    password:''
+  });
+  const [errors, setErrors] = useState({});
+  function handleChange(event) {
+    const newObject = {...values, [event.target.firstName]: event.target.value};
+    setValues(newObject);
+  }
+  function validation(event){
+    //event.preventDefault();
+    setErrors(valid(values));
+  }
+
+
+  
+
   const navigate = useNavigate();
 
   return (
@@ -19,7 +42,7 @@ function Signup() {
           <div className="signup-card">
             <h2 className="signup-title">Create Your Account</h2>
             
-            <form className="signup-form">
+            <form className="signup-form" onSubmit={validation}>
               <div className="name-row">
                 <div className="input-group">
                   <label htmlFor="firstName">First Name</label>
@@ -28,7 +51,10 @@ function Signup() {
                     id="firstName" 
                     placeholder="First name" 
                     className="signup-input"
+                    onChange={handleChange}
                   />
+                    {errors.firstName && <p style={{color: 'red'}}> {errors.firstName} </p>}
+
                 </div>
                 <div className="input-group">
                   <label htmlFor="lastName">Last Name</label>
@@ -37,7 +63,9 @@ function Signup() {
                     id="lastName" 
                     placeholder="Last name" 
                     className="signup-input"
+                    onChange={handleChange}
                   />
+                  {errors.lastName && <p style={{color: 'red'}}> {errors.lastName} </p>}
                 </div>
               </div>
 
@@ -49,7 +77,9 @@ function Signup() {
                     id="idNumber" 
                     placeholder="Enter ID number" 
                     className="signup-input"
+                    onChange={handleChange}
                   />
+                  {errors.idNumber && <p style={{color: 'red'}}> {errors.idNumber} </p>}
                 </div>
                 <div className="input-group">
                   <label htmlFor="position">Position</label>
@@ -58,7 +88,9 @@ function Signup() {
                     id="position" 
                     placeholder="Your position" 
                     className="signup-input"
+                    onChange={handleChange}
                   />
+                  {errors.position && <p style={{color: 'red'}}> {errors.position} </p>}
                 </div>
               </div>
 
@@ -70,7 +102,9 @@ function Signup() {
                     id="email" 
                     placeholder="Enter your email" 
                     className="signup-input"
+                    onChange={handleChange}
                   />
+                  {errors.email && <p style={{color: 'red'}}> {errors.email} </p>}
                 </div>
                 <div className="input-group">
                     <label htmlFor="password">Password</label>
@@ -79,7 +113,10 @@ function Signup() {
                     id="password" 
                     placeholder="Create password" 
                     className="signup-input"
+                    onChange={handleChange}
                     />
+                    {errors.password && <p style={{color: 'red'}}> {errors.password} </p>}
+
                 </div>
               </div>
 
@@ -89,9 +126,9 @@ function Signup() {
               </div>
 
               <button 
-                type="button" 
+                type="submit" 
                 className="signup-button"
-                onClick={() => navigate('/Dashboard')}
+                //onClick={() => navigate('/Dashboard')}
               >
                 Create Account
               </button>

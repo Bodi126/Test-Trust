@@ -9,6 +9,7 @@ import DiveInto from './DiveInto';
 import Dashboard from './Dashboard'; 
 import AddExam1 from './AddExam1';
 import AddExam2 from './AddExam2';
+import ManageExams from './ManageExam';
 
 
 function App() {
@@ -105,6 +106,11 @@ function App() {
           <Route path="/addexam2" element={
             <div className="main-content">
               <AddExam2 />
+            </div>
+          } />
+          <Route path="/ManageExam" element={
+            <div className="main-content">
+              <ManageExams />
             </div>
           } />
         </Routes>

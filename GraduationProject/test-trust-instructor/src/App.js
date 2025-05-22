@@ -34,8 +34,10 @@ function App() {
       <div className="App">
         <nav className='app-navbar'>
           <div className="navbar-brand">
-            <img src={Logo} className="app-logo" alt="TestTrust Logo" />
-          </div>
+            <Link to="/">  {/* This will navigate to the home route */}
+              <img src={Logo} className="app-logo" alt="TestTrust Logo" />
+            </Link>
+          </div>  
           
           <ul className='nav-menu'>
             <li className="nav-item">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   FaShieldAlt, 
   FaFingerprint, 
@@ -12,6 +13,7 @@ import {
 import './DiveInto.css';
 
 const DiveInto = () => {
+  const navigate = useNavigate();
   const [activeFeature, setActiveFeature] = useState(0);
 
   const features = [
@@ -62,7 +64,7 @@ const DiveInto = () => {
   const handleGetStarted = () => {
     // Add your navigation logic here
     console.log("Get Started clicked");
-    // Example: navigate('/signup');
+    navigate('/signup');
   };
 
   return (

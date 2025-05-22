@@ -10,6 +10,7 @@ import Dashboard from './Dashboard';
 import AddExam1 from './AddExam1';
 import AddExam2 from './AddExam2';
 import ManageExams from './ManageExam';
+import ManageStudents from './ManageStudents';
 
 
 function App() {
@@ -111,6 +112,11 @@ function App() {
           <Route path="/ManageExam" element={
             <div className="main-content">
               <ManageExams />
+            </div>
+          } />
+          <Route path="/ManageStudents" element={
+            <div className="main-content">
+              <ManageStudents />
             </div>
           } />
         </Routes>

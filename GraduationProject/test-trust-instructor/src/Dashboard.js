@@ -39,7 +39,7 @@ function Dashboard() {
           <button className="nav-button" onClick={() => navigate('/ManageExam')}>
             <i className="fas fa-tasks"></i> Manage Exams
           </button>
-          <button className="nav-button" onClick={() => navigate('/manage-students')}>
+          <button className="nav-button" onClick={() => navigate('/ManageStudents')}>
             <i className="fas fa-users"></i> Manage Students
           </button>
           <button className="nav-button" onClick={() => navigate('/results')}>

@@ -11,13 +11,15 @@
   margin-bottom: 40px;
   border-radius: 10px;
   position: relative;
+  overflow-y:auto;
 }
 
 /* Back Button */
 .back-button {
   position: absolute;
-  top: 20px;
+  top: 10px;
   left: 20px;
+  margin-bottom:30px;
   background: none;
   border: none;
   color: #4a6baf;

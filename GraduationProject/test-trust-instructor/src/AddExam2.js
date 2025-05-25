@@ -6,20 +6,20 @@ const questionTypes = [
   { value: 'mcq', label: 'Multiple Choice', icon: '☑️' },
   { value: 'trueFalse', label: 'True/False', icon: '🔘' },
   { value: 'written', label: 'Written Answer', icon: '✍️' },
-  { value: 'match', label: 'Matching', icon: '⇄' }
 ];
 
 const AddExam2 = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const examData = location.state?.examData || {};
+  const { examData } = location.state || {};
   const [currentQuestion, setCurrentQuestion] = useState(1);
   const [questionType, setQuestionType] = useState('');
-  const [autoCorrect, setAutoCorrect] = useState(false);
   const [answer, setAnswer] = useState({});
   const [questions, setQuestions] = useState([]);
   const [questionText, setQuestionText] = useState('');
   const [expanded, setExpanded] = useState(false);
+
+  const autoCorrection = examData?.autoCorrection || false;
 
   useEffect(() => {
     setQuestionText('');
@@ -31,17 +31,28 @@ const AddExam2 = () => {
     setExpanded(true);
   };
 
-  const handleAutoCorrectChange = (e) => {
-    setAutoCorrect(e.target.checked);
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!questionText) {
+      alert('Please enter the question text');
+      return;
+    }
+
+    if (autoCorrection && questionType === 'mcq' && !answer.correctOption) {
+      alert('Please select the correct answer');
+      return;
+    }
+
+    if (autoCorrection && questionType === 'trueFalse' && !answer.trueFalseAnswer) {
+      alert('Please select the correct answer');
+      return;
+    }
+
     const newQuestion = {
       number: currentQuestion,
       type: questionType,
       question: questionText,
-      autoCorrect,
+      autoCorrect: autoCorrection,
       answer
     };
     
@@ -52,19 +63,26 @@ const AddExam2 = () => {
       setExpanded(false);
       setQuestionType('');
     } else {
-      navigate('/exam-review', { state: { examData, questions: [...questions, newQuestion] } });
+      navigate('/exam-review', { 
+        state: { 
+          examData: {
+            ...examData,
+            archiveExam: examData.archiveExam || false
+          }, 
+          questions: [...questions, newQuestion] 
+        } 
+      });
     }
   };
 
   const handleBack = () => {
     if (currentQuestion === 1) {
-      navigate('/AddExam1', { state: { examData } }); // Change this route if your AddExam1 route is different
+      navigate('/AddExam1', { state: { examData } });
     } else {
       setCurrentQuestion(currentQuestion - 1);
       const prevQuestion = questions[questions.length - 1];
       setQuestionType(prevQuestion.type);
       setQuestionText(prevQuestion.question);
-      setAutoCorrect(prevQuestion.autoCorrect);
       setAnswer(prevQuestion.answer);
       setQuestions(questions.slice(0, -1));
       setExpanded(true);
@@ -74,13 +92,6 @@ const AddExam2 = () => {
   const handleAnswerChange = (e) => {
     const { name, value } = e.target;
     setAnswer(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleMatchChange = (pair, type, value) => {
-    setAnswer(prev => ({
-      ...prev,
-      [`${type}${pair}`]: value
-    }));
   };
 
   const renderQuestionInput = () => {
@@ -103,59 +114,22 @@ const AddExam2 = () => {
               placeholder="Enter the question stem (e.g., What is 2+2?)"
               rows={2}
               className="question-textarea mcq-stem"
+              required
             />
             {['A', 'B', 'C', 'D'].map(option => (
               <div key={option} className="mcq-option">
                 <span className="option-letter">{option})</span>
                 <input
                   type="text"
+                  name={`option${option}`}
                   value={answer[`option${option}`] || ''}
-                  onChange={(e) => handleAnswerChange({
-                    target: { name: `option${option}`, value: e.target.value }
-                  })}
+                  onChange={handleAnswerChange}
                   placeholder={`Option ${option}`}
                   className="mcq-option-input"
+                  required
                 />
               </div>
             ))}
-          </div>
-        ) : questionType === 'match' ? (
-          <div className="match-pairs-container">
-            <textarea
-              value={questionText}
-              onChange={(e) => setQuestionText(e.target.value)}
-              placeholder="Enter matching instructions"
-              rows={1}
-              className="question-textarea match-instructions"
-            />
-            <div className="match-columns">
-              <div className="match-column">
-                <h4>Items</h4>
-                {[1, 2, 3, 4].map(pair => (
-                  <input
-                    key={`item${pair}`}
-                    type="text"
-                    placeholder={`Item ${pair}`}
-                    value={answer[`item${pair}`] || ''}
-                    onChange={(e) => handleMatchChange(pair, 'item', e.target.value)}
-                    className="match-item-input"
-                  />
-                ))}
-              </div>
-              <div className="match-column">
-                <h4>Matches</h4>
-                {[1, 2, 3, 4].map(pair => (
-                  <input
-                    key={`match${pair}`}
-                    type="text"
-                    placeholder={`Match ${pair}`}
-                    value={answer[`match${pair}`] || ''}
-                    onChange={(e) => handleMatchChange(pair, 'match', e.target.value)}
-                    className="match-item-input"
-                  />
-                ))}
-              </div>
-            </div>
           </div>
         ) : (
           <textarea
@@ -176,13 +150,13 @@ const AddExam2 = () => {
   };
 
   const renderAnswerInput = () => {
-    if (!autoCorrect) return null;
+    if (!autoCorrection) return null;
 
     switch (questionType) {
       case 'mcq':
         return (
           <div className="answer-section">
-            <label>Correct Answer</label>
+            <h3>Correct Answer</h3>
             <div className="options-grid">
               {['A', 'B', 'C', 'D'].map(option => (
                 <label key={option} className="option-radio">
@@ -192,6 +166,7 @@ const AddExam2 = () => {
                     value={option}
                     checked={answer.correctOption === option}
                     onChange={handleAnswerChange}
+                    required={autoCorrection}
                   />
                   <span className="radio-custom"></span>
                   Option {option}
@@ -204,7 +179,7 @@ const AddExam2 = () => {
       case 'trueFalse':
         return (
           <div className="answer-section">
-            <label>Correct Answer</label>
+            <h3>Correct Answer</h3>
             <div className="options-row">
               <label className="option-radio">
                 <input
@@ -213,6 +188,7 @@ const AddExam2 = () => {
                   value="true"
                   checked={answer.trueFalseAnswer === 'true'}
                   onChange={handleAnswerChange}
+                  required={autoCorrection}
                 />
                 <span className="radio-custom"></span>
                 True
@@ -224,6 +200,7 @@ const AddExam2 = () => {
                   value="false"
                   checked={answer.trueFalseAnswer === 'false'}
                   onChange={handleAnswerChange}
+                  required={autoCorrection}
                 />
                 <span className="radio-custom"></span>
                 False
@@ -235,7 +212,7 @@ const AddExam2 = () => {
       case 'written':
         return (
           <div className="answer-section">
-            <label>Model Answer</label>
+            <h3>Model Answer</h3>
             <textarea
               name="modelAnswer"
               value={answer.modelAnswer || ''}
@@ -243,33 +220,8 @@ const AddExam2 = () => {
               placeholder="Enter the expected answer"
               rows={4}
               className="model-answer"
+              required={autoCorrection}
             />
-          </div>
-        );
-
-      case 'match':
-        return (
-          <div className="answer-section">
-            <label>Correct Matches</label>
-            <div className="match-pairs">
-              {[1, 2, 3, 4].map(pair => (
-                <div key={pair} className="match-pair-row">
-                  <span className="match-pair-label">Pair {pair}:</span>
-                  <select
-                    value={answer[`correctMatch${pair}`] || ''}
-                    onChange={(e) => handleAnswerChange({
-                      target: { name: `correctMatch${pair}`, value: e.target.value }
-                    })}
-                    className="match-pair-select"
-                  >
-                    <option value="">Select match</option>
-                    {[1, 2, 3, 4].map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-            </div>
           </div>
         );
 
@@ -280,8 +232,6 @@ const AddExam2 = () => {
 
   return (
     <div className="exam-creator-container">
-
-
       <div className="progress-display">
         <div className="progress-text">
           Question <span>{currentQuestion}</span> of {examData.questionCount}
@@ -337,7 +287,6 @@ const AddExam2 = () => {
             >
               ← Back to Dashboard
             </button>
-
           </div>
         </div>
 
@@ -347,22 +296,14 @@ const AddExam2 = () => {
               {renderQuestionInput()}
             </div>
             
-            <div className="answer-panel">
-              <div className="auto-correct-toggle">
-                <label>Enable auto-correction?</label>
-                <div className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    id="autoCorrect"
-                    checked={autoCorrect}
-                    onChange={handleAutoCorrectChange}
-                  />
-                  <label htmlFor="autoCorrect" className="switch" />
+            {autoCorrection && (
+              <div className="answer-panel">
+                <div className="auto-correct-info">
+                  <p>Auto-correction is enabled. Marks will be distributed evenly.</p>
                 </div>
+                {renderAnswerInput()}
               </div>
-
-              {renderAnswerInput()}
-            </div>
+            )}
           </div>
         )}
       </div>

@@ -314,13 +314,13 @@ body {
 }
 
 .exam-action-btn {
-  width: 32px;
+  width: 10px;
   height: 32px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  background: transparent !important;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -334,14 +334,17 @@ body {
 
 .exam-action-btn.view {
   color: var(--primary);
+  display: var(--primary);
 }
 
 .exam-action-btn.edit {
   color: var(--warning);
+  display: var(--warning);
 }
 
 .exam-action-btn.delete {
   color: var(--danger);
+  display: var(--danger);
 }
 
 /* Exam Details Section */

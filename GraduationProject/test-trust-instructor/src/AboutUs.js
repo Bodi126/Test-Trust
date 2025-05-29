@@ -1,6 +1,9 @@
 import React from 'react';
 import TeamMember from './TeamMembers';
 import './AboutUs.css';
+import abdelrahmanImage from './assets/team-members/Abdelrahman.jpeg';
+import shahdImage from './assets/team-members/Shahd.png';
+import hazemImage from './assets/team-members/Hazem.jpeg';
 
 const AboutUs = () => {
   const teamMembers = [
@@ -8,8 +11,8 @@ const AboutUs = () => {
       id: 1,
       name: 'Abdelrahman Sherif',
       role: 'Project Lead',
-      image: 'https://randomuser.me/api/portraits/men/32.jpg',
-      education: 'MSc Computer Science, Stanford University',
+      image: abdelrahmanImage,
+      education: 'Information Communication Technology Networking track, NCTU',
       experience: '10+ years in software development',
       bio: 'Abdelrahman leads our team with expertise in software architecture and project management. He ensures our projects are delivered on time and meet the highest quality standards.',
       github: 'https://github.com',
@@ -18,9 +21,9 @@ const AboutUs = () => {
     {
       id: 2,
       name: 'Shahd Aboelkaramat',
-      role: 'UI/UX Designer',
-      image: 'https://randomuser.me/api/portraits/women/44.jpg',
-      education: 'BFA in Design, RISD',
+      role: 'Backend Developer, Database Administrator',
+      image: shahdImage,
+      education: 'Information Communication Technology Networking track, NCTU',
       experience: '7 years in UX design',
       bio: 'Shahd creates intuitive and beautiful user interfaces that delight our users while maintaining excellent usability standards.',
       github: 'https://github.com',
@@ -29,9 +32,9 @@ const AboutUs = () => {
     {
       id: 3,
       name: 'George Magdy',
-      role: 'Frontend Developer',
+      role: 'IOT Engineer, AI Engineer',
       image: 'https://randomuser.me/api/portraits/men/22.jpg',
-      education: 'BS Computer Science, MIT',
+      education: 'Information Communication Technology Networking track, NCTU',
       experience: '5 years with React ecosystem',
       bio: 'George specializes in building responsive, performant frontends with modern React and TypeScript.',
       github: 'https://github.com',
@@ -40,7 +43,7 @@ const AboutUs = () => {
     {
       id: 4,
       name: 'Nour Tamer',
-      role: 'Backend Engineer',
+      role: 'Server Developer, API Specialist',
       image: 'https://randomuser.me/api/portraits/women/63.jpg',
       education: 'MS Software Engineering, CMU',
       experience: '6 years in backend systems',
@@ -51,7 +54,7 @@ const AboutUs = () => {
     {
       id: 5,
       name: 'Youssef Yehia',
-      role: 'DevOps Engineer',
+      role: 'Frontend Developer, DevOps Engineer',
       image: 'https://randomuser.me/api/portraits/men/75.jpg',
       education: 'BS Information Technology, Georgia Tech',
       experience: '4 years in cloud infrastructure',
@@ -62,8 +65,8 @@ const AboutUs = () => {
     {
       id: 6,
       name: 'Hazem Ebrahim',
-      role: 'QA Specialist',
-      image: 'https://randomuser.me/api/portraits/women/28.jpg',
+      role: 'QA Specialist, Penetration tester',
+      image: hazemImage,
       education: 'BS Computer Science, UW',
       experience: '5 years in quality assurance',
       bio: 'Hazem meticulously tests our software to ensure it meets our high quality standards before reaching users.',

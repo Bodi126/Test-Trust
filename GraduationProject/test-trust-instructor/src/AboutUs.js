@@ -2,7 +2,7 @@ import React from 'react';
 import TeamMember from './TeamMembers';
 import './AboutUs.css';
 import abdelrahmanImage from './assets/team-members/Abdelrahman.jpeg';
-import shahdImage from './assets/team-members/Shahd.png';
+import shahdImage from './assets/team-members/Shahd.jpeg';
 import hazemImage from './assets/team-members/Hazem.jpeg';
 
 const AboutUs = () => {

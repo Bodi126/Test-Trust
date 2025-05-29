@@ -11,6 +11,8 @@ import AddExam1 from './AddExam1';
 import AddExam2 from './AddExam2';
 import ManageExams from './ManageExam';
 import ManageStudents from './ManageStudents';
+import ForgetPassword from './ForgetPassword';
+import ResetPassword from './ResetPassword';
 
 
 function App() {
@@ -117,6 +119,16 @@ function App() {
           <Route path="/ManageStudents" element={
             <div className="main-content">
               <ManageStudents />
+            </div>
+          } />
+          <Route path="/ForgetPassword" element={
+            <div className="main-content">
+              <ForgetPassword />
+            </div>
+          } />
+          <Route path="/ResetPassword" element={
+            <div className="main-content">
+              <ResetPassword />
             </div>
           } />
         </Routes>

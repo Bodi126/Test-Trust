@@ -2,6 +2,7 @@ import './signup.css';
 import React, { use, useEffect, useState  } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from './images/Logo.jpg';
+import axios from 'axios';
 
 function valid(values) {
     const errors = {};
@@ -11,30 +12,30 @@ function valid(values) {
 
 
     
-    if (values.firstName === " ") {
+    if (!values.firstName.trim()) {
         errors.firstName = "First name is required!";
     }
 
-    if (values.lastName === ' ') {
+    if (!values.lastName.trim()) {
         errors.lastName = "Last name is required!";
     }
 
-    if (values.idNumber === ' ') {
+    if (!values.idNumber.trim()) {
         errors.idNumber = "Last ID is required!";
     }
 
-    if (values.position === ' ') {
+    if (!values.position.trim()) {
         errors.position = "Last position is required!";
     }
 
-    if (values.email === ' ') {
+    if (!values.email.trim()) {
         errors.email = "Email is required!";
     }
     else if(!email_pattern.test(values.email)){
         errors.email = "Email is not valid!";
     }
 
-    if (values.password === ' ') {
+    if (!values.password.trim()) {
         errors.password = "Password is required!";
     }
     else if(!password_pattern.test(values.password)){
@@ -46,23 +47,35 @@ function valid(values) {
 
 function Signup() {
   const [values, setValues] = useState({
-    firstName:' ',
-    lastName:' ',
-    idNumber:' ',
-    position:' ',
-    email:' ',
-    password:' '
+    firstName:'',
+    lastName:'',
+    idNumber:'',
+    position:'',
+    email:'',
+    password:''
   });
   const [errors, setErrors] = useState({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
   function handleChange(event) {
-    const newObject = {...values, [event.target.firstName]: event.target.value};
-    setValues(newObject);
+    const { name, value } = event.target;
+    setValues({ ...values, [name]: value });
   }
-  function validation(event){
+  function validation(event) {
     event.preventDefault();
-    setErrors(valid(values));
-  }
+    const validationErrors = valid(values);
+    setErrors(validationErrors);
 
+    if (Object.keys(validationErrors).length === 0) {
+    axios.post('http://localhost:5000/auth/signup', values)
+      .then(response => {
+        console.log(response.data);
+        setIsSubmitted(true);
+        navigate('/login');
+      })
+      .catch(error => {
+        console.error('Error during signup:', error);
+      });
+  }}
 
   const navigate = useNavigate();
 
@@ -86,7 +99,8 @@ function Signup() {
                   <input 
                     type="text" 
                     id="firstName" 
-                    placeholder="First name" 
+                    placeholder="First name"
+                    name="firstName" 
                     className="signup-input"
                     onChange={handleChange}
                   />
@@ -99,6 +113,7 @@ function Signup() {
                     type="text" 
                     id="lastName" 
                     placeholder="Last name" 
+                    name="lastName"
                     className="signup-input"
                     onChange={handleChange}
                   />
@@ -113,6 +128,7 @@ function Signup() {
                     type="text" 
                     id="idNumber" 
                     placeholder="Enter ID number" 
+                    name="idNumber"
                     className="signup-input"
                     onChange={handleChange}
                   />
@@ -124,6 +140,7 @@ function Signup() {
                     type="text" 
                     id="position" 
                     placeholder="Your position" 
+                    name="position"
                     className="signup-input"
                     onChange={handleChange}
                   />
@@ -135,9 +152,9 @@ function Signup() {
                 <div className="input-group">
                   <label htmlFor="email">Email</label>
                   <input 
-                    type="email" 
                     id="email" 
                     placeholder="Enter your email" 
+                    name="email"
                     className="signup-input"
                     onChange={handleChange}
                   />
@@ -149,6 +166,7 @@ function Signup() {
                     type="password" 
                     id="password" 
                     placeholder="Create password" 
+                    name="password"
                     className="signup-input"
                     onChange={handleChange}
                     />

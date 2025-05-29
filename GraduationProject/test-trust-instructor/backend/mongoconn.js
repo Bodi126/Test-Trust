@@ -1,11 +1,17 @@
-
 const mongoose = require('mongoose');
 const express = require('express');
 const cors = require("cors");
+const authRoutes = require("./routes/auth");
 
 const app = express();
 
-// MongoDB connection
+app.use(cors({
+  origin: 'http://localhost:3000',
+    credentials: true
+}));
+
+app.use(express.json());
+
 mongoose.connect('mongodb://localhost:27017/testtrust', {
     useNewUrlParser: true,
     useUnifiedTopology: true
@@ -15,7 +21,8 @@ mongoose.connect('mongodb://localhost:27017/testtrust', {
     console.log('Error connecting to database', err);
 });
 
-// Start the server
+app.use('/auth', authRoutes);
+
 app.listen(5000, () => {
     console.log("App is running on port 5000");
 });

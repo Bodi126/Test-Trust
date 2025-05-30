@@ -5,36 +5,18 @@ import axios from 'axios';
 
 const validate = (values) => {
   const errors = {};
-  if (!values.department?.trim()) {
-    errors.department = 'Department is required';
-  }
-  if (!values.year?.trim()) {
-    errors.year = 'Year is required';
-  }
-  if (!values.subject?.trim()) {
-    errors.subject = 'Subject is required';
-  }
-  if (!values.studentCount?.trim()) {
-    errors.studentCount = 'Student Count is required';
-  }
-  if (!values.examDate?.trim()) {
-    errors.examDate = 'Exam Date is required';
-  }
-  if (!values.examTime?.trim()) {
-    errors.examTime = 'Exam Time is required';
-  }
-  if (!values.examDuration?.trim()) {
-    errors.examDuration = 'Exam Duration is required';
-  }
-  if (!values.totalMarks?.trim()) {
-    errors.totalMarks = 'Total Marks is required';
-  }
-  if (!values.questionCount?.trim()) {
-    errors.questionCount = 'Question Count is required';
-  }
+  if (!values.department?.trim()) errors.department = 'Department is required';
+  if (!values.year?.trim()) errors.year = 'Year is required';
+  if (!values.subject?.trim()) errors.subject = 'Subject is required';
+  if (!values.studentCount) errors.studentCount = 'Student Count is required';
+  if (!values.examDate) errors.examDate = 'Exam Date is required';
+  if (!values.examTime) errors.examTime = 'Exam Time is required';
+  if (!values.examDuration) errors.examDuration = 'Exam Duration is required';
+  if (!values.totalMarks) errors.totalMarks = 'Total Marks is required';
+  if (!values.questionCount) errors.questionCount = 'Question Count is required';
   return errors;
 };
-  
+
 const AddExam1 = () => {
   const [values, setValues] = useState({
     department: '',
@@ -46,52 +28,62 @@ const AddExam1 = () => {
     examDuration: '',
     totalMarks: '',
     questionCount: '',
-    autoCorrection: '',
-    archiveExam: '',
+    autoCorrection: false, // Changed from '' to false
+    archiveExam: false    // Changed from '' to false
   });
   
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const navigate = useNavigate();
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setValues({ ...values, [name]: value });
+    setValues(prev => ({ ...prev, [name]: value }));
+    // Clear error when user types
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleCheckboxChange = (event) => {
     const { name, checked } = event.target;
-    setValues({ ...values, [name]: checked });
+    setValues(prev => ({ ...prev, [name]: checked }));
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmitError('');
-    setIsSubmitting(true);
     
     const validationErrors = validate(values);
     setErrors(validationErrors);
     
     if (Object.keys(validationErrors).length > 0) {
-      setIsSubmitting(false);
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       const response = await axios.post('http://localhost:5000/auth/AddExam1', values);
-      console.log('Exam created successfully:', response.data);
-      navigate('/AddExam2');
+      console.log('Exam created:', response.data);
+      navigate('/AddExam2', { 
+        state: { 
+          examData: {
+            ...values,
+            _id: response.data.examId // Include the exam ID
+          }
+        } 
+      });
     } catch (error) {
-      console.error('Exam creation failed:', error);
+      const errorMessage = error.response?.data?.message || 
+                        'Failed to create exam. Please try again.';
+      setSubmitError(errorMessage);
+      console.error('Exam creation error:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
-  const navigate = useNavigate();
-  const handleBack = () => {
-    navigate('/dashboard');
-  };
 
+  const handleBack = () => navigate('/dashboard');
   return (
     <div className="add-exam-container">
       <div className="exam-header">

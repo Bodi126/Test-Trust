@@ -41,24 +41,54 @@ router.post('/login', async (req, res) => {
 
 router.post('/AddExam1', async (req, res) => {
   try {
-    const { examTime, subject } = req.body;
+    const { examTime, examDate, subject } = req.body;
 
-    const existingExamTime = await Exam.findOne({ examTime });
-    if (existingExamTime) {
-      return res.status(400).json({ message: 'Exam already exists for this time' });
-    }
-    const existingExamSubject = await Exam.findOne({ subject });
-    if (existingExamSubject) {
-      return res.status(400).json({ message: 'Exam already exists for this subject' });
+    // Check for existing exam with same time AND date (more realistic check)
+    const existingExam = await Exam.findOne({ 
+      examDate: new Date(examDate),
+      examTime 
+    });
+    
+    if (existingExam) {
+      return res.status(400).json({ 
+        message: 'An exam already exists at this date and time' 
+      });
     }
 
-    const newExam = new Exam(req.body);
+    // Check for existing exam with same subject AND date
+    const existingSubjectExam = await Exam.findOne({ 
+      subject,
+      examDate: new Date(examDate) 
+    });
+    
+    if (existingSubjectExam) {
+      return res.status(400).json({ 
+        message: 'An exam for this subject already exists on this date' 
+      });
+    }
+
+    // Create new exam with proper type conversion
+    const newExam = new Exam({
+      ...req.body,
+      examDate: new Date(req.body.examDate),
+      studentCount: Number(req.body.studentCount),
+      examDuration: Number(req.body.examDuration),
+      totalMarks: Number(req.body.totalMarks),
+      questionCount: Number(req.body.questionCount)
+    });
+
     await newExam.save();
-    console.log('New exam created:', newExam);
+    res.status(201).json({ 
+      message: 'Exam created successfully',
+      examId: newExam._id // Return the exam ID for future reference
+    });
 
-    res.status(201).json({ message: 'Exam created successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Exam creation error', error: err });
+    console.error('Exam creation error:', err);
+    res.status(500).json({ 
+      message: 'Exam creation failed',
+      error: err.message // Send only the error message for security
+    });
   }
 });
 

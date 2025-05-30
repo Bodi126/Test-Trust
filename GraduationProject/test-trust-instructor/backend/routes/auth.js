@@ -41,36 +41,63 @@ router.post('/login', async (req, res) => {
 
 router.post('/AddExam1', async (req, res) => {
   try {
-    const { examTime, examDate, subject } = req.body;
+    const { examTime, examDate, subject, department, year, examDuration } = req.body;
 
-    // Check for existing exam with same time AND date (more realistic check)
-    const existingExam = await Exam.findOne({ 
-      examDate: new Date(examDate),
-      examTime 
-    });
-    
-    if (existingExam) {
-      return res.status(400).json({ 
-        message: 'An exam already exists at this date and time' 
-      });
+    // Validate required fields
+    if (!examTime || !examDate || !subject || !department || !year || !examDuration) {
+      return res.status(400).json({ message: 'All fields are required' });
     }
 
-    // Check for existing exam with same subject AND date
-    const existingSubjectExam = await Exam.findOne({ 
-      subject,
-      examDate: new Date(examDate) 
+    // Validate exam date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const inputDate = new Date(examDate);
+    inputDate.setHours(0, 0, 0, 0);
+
+    if (inputDate < today) {
+      return res.status(400).json({ message: 'Exam date cannot be in the past' });
+    }
+
+    // Check for time slot conflicts within the same department
+    const existingExams = await Exam.find({ 
+      department,
+      examDate: inputDate 
     });
-    
+
+    // Calculate new exam start and end times
+    const newExamStart = new Date(`${examDate}T${examTime}`);
+    const newExamEnd = new Date(newExamStart.getTime() + examDuration * 60000);
+
+    // Check for time conflicts within same department
+    for (const exam of existingExams) {
+      const existingStart = new Date(`${exam.examDate.toISOString().split('T')[0]}T${exam.examTime}`);
+      const existingEnd = new Date(existingStart.getTime() + exam.examDuration * 60000);
+
+      if (newExamStart < existingEnd && newExamEnd > existingStart) {
+        return res.status(400).json({ 
+          message: 'Time conflict with another exam in ${department} department' 
+        });
+      }
+    }
+
+    // Check if same subject exists for same department/year/date combination
+    const existingSubjectExam = await Exam.findOne({ 
+      subject: { $regex: new RegExp(`^${subject}$`, 'i') },
+      department,
+      year,
+      examDate: inputDate 
+    });
+
     if (existingSubjectExam) {
       return res.status(400).json({ 
-        message: 'An exam for this subject already exists on this date' 
+        message: '${subject} exam already exists for ${department} (Year ${year}) on this date' 
       });
     }
 
-    // Create new exam with proper type conversion
+    // Create and save the new exam
     const newExam = new Exam({
       ...req.body,
-      examDate: new Date(req.body.examDate),
+      examDate: inputDate,
       studentCount: Number(req.body.studentCount),
       examDuration: Number(req.body.examDuration),
       totalMarks: Number(req.body.totalMarks),
@@ -78,16 +105,17 @@ router.post('/AddExam1', async (req, res) => {
     });
 
     await newExam.save();
+
     res.status(201).json({ 
       message: 'Exam created successfully',
-      examId: newExam._id // Return the exam ID for future reference
+      examId: newExam._id 
     });
 
   } catch (err) {
     console.error('Exam creation error:', err);
     res.status(500).json({ 
       message: 'Exam creation failed',
-      error: err.message // Send only the error message for security
+      error: err.message 
     });
   }
 });

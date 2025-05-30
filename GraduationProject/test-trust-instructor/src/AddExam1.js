@@ -28,8 +28,8 @@ const AddExam1 = () => {
     examDuration: '',
     totalMarks: '',
     questionCount: '',
-    autoCorrection: false, // Changed from '' to false
-    archiveExam: false    // Changed from '' to false
+    autoCorrection: false,
+    archiveExam: false
   });
   
   const [errors, setErrors] = useState({});
@@ -40,7 +40,6 @@ const AddExam1 = () => {
   const handleChange = (event) => {
     const { name, value } = event.target;
     setValues(prev => ({ ...prev, [name]: value }));
-    // Clear error when user types
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
@@ -63,27 +62,37 @@ const AddExam1 = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/auth/AddExam1', values);
-      console.log('Exam created:', response.data);
+      // Normalize subject by trimming and lowercasing for consistency
+      const normalizedSubject = values.subject.trim().toLowerCase();
+      
+      const response = await axios.post('http://localhost:5000/auth/AddExam1', {
+        ...values,
+        subject: normalizedSubject, // Send normalized subject
+        studentCount: Number(values.studentCount),
+        examDuration: Number(values.examDuration),
+        totalMarks: Number(values.totalMarks),
+        questionCount: Number(values.questionCount)
+      });
+      
       navigate('/AddExam2', { 
         state: { 
           examData: {
             ...values,
-            _id: response.data.examId // Include the exam ID
+            _id: response.data.examId
           }
         } 
       });
     } catch (error) {
       const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error || 
                         'Failed to create exam. Please try again.';
       setSubmitError(errorMessage);
-      console.error('Exam creation error:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
-
   const handleBack = () => navigate('/dashboard');
+
   return (
     <div className="add-exam-container">
       <div className="exam-header">
@@ -93,7 +102,7 @@ const AddExam1 = () => {
 
       {submitError && (
         <div className="alert alert-error">
-          {submitError}
+          <strong>Error:</strong> {submitError}
         </div>
       )}
 
@@ -168,6 +177,7 @@ const AddExam1 = () => {
               value={values.examDate} 
               onChange={handleChange} 
               className={errors.examDate ? 'error-input' : ''}
+              min={new Date().toISOString().split('T')[0]}
             />
             {errors.examDate && <span className="error">{errors.examDate}</span>}
           </div>
@@ -268,7 +278,11 @@ const AddExam1 = () => {
             className="next-button"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Submitting...' : 'Continue to Questions →'}
+            {isSubmitting ? (
+              <>
+                <span className="spinner"></span> Creating Exam...
+              </>
+            ) : 'Continue to Questions →'}
           </button>
         </div>
       </form>

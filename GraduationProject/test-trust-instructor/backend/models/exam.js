@@ -4,12 +4,10 @@ const examSchema = new mongoose.Schema({
     department: {
         type: String,
         required: true,
-        enum: ['cs', 'eng', 'med', 'bus'] // Example departments
     },
     year: {
         type: String,
         required: true,
-        enum: ['1', '2', '3', '4']
     },
     subject: {
         type: String,

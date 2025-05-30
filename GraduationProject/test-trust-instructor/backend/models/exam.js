@@ -6,7 +6,7 @@ const examSchema = new mongoose.Schema({
     subject: String,
     studentCount: Number,
     examDate: Date,
-    examTime: String,
+    examTime: {String, unique: true},
     examDuration: String,
     totalMarks: Number,
     questionCount: Number,
@@ -14,4 +14,4 @@ const examSchema = new mongoose.Schema({
     archiveExam: Boolean,
 })
 
-module.exports = mongoose.model('Examinfo', examSchema, 'exam');
+module.exports = mongoose.model('Exam', examSchema, 'exam');

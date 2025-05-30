@@ -1,10 +1,42 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AddExam1.css';
+import axios from 'axios';
 
+const validate = (values) => {
+  const errors = {};
+  if (!values.department?.trim()) {
+    errors.department = 'Department is required';
+  }
+  if (!values.year?.trim()) {
+    errors.year = 'Year is required';
+  }
+  if (!values.subject?.trim()) {
+    errors.subject = 'Subject is required';
+  }
+  if (!values.studentCount?.trim()) {
+    errors.studentCount = 'Student Count is required';
+  }
+  if (!values.examDate?.trim()) {
+    errors.examDate = 'Exam Date is required';
+  }
+  if (!values.examTime?.trim()) {
+    errors.examTime = 'Exam Time is required';
+  }
+  if (!values.examDuration?.trim()) {
+    errors.examDuration = 'Exam Duration is required';
+  }
+  if (!values.totalMarks?.trim()) {
+    errors.totalMarks = 'Total Marks is required';
+  }
+  if (!values.questionCount?.trim()) {
+    errors.questionCount = 'Question Count is required';
+  }
+  return errors;
+};
+  
 const AddExam1 = () => {
-  const navigate = useNavigate();
-  const [examData, setExamData] = useState({
+  const [values, setValues] = useState({
     department: '',
     year: '',
     subject: '',
@@ -14,34 +46,51 @@ const AddExam1 = () => {
     examDuration: '',
     totalMarks: '',
     questionCount: '',
-    autoCorrection: false,
-    archiveExam: false
+    autoCorrection: '',
+    archiveExam: '',
   });
+  
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setExamData(prev => ({ ...prev, [name]: value }));
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setValues({ ...values, [name]: value });
   };
 
-  const handleCheckboxChange = (e) => {
-    const { name, checked } = e.target;
-    setExamData(prev => ({ ...prev, [name]: checked }));
+  const handleCheckboxChange = (event) => {
+    const { name, checked } = event.target;
+    setValues({ ...values, [name]: checked });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const requiredFields = ['department', 'year', 'subject', 'studentCount', 
-                          'examDate', 'examTime', 'examDuration', 'totalMarks', 'questionCount'];
-    const isValid = requiredFields.every(field => examData[field] !== '');
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSubmitError('');
+    setIsSubmitting(true);
     
-    if (isValid) {
-      navigate('/AddExam2', { state: { examData } });
-    } else {
-      alert('Please fill all required fields');
+    const validationErrors = validate(values);
+    setErrors(validationErrors);
+    
+    if (Object.keys(validationErrors).length > 0) {
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await axios.post('http://localhost:5000/auth/AddExam1', values);
+      console.log('Exam created successfully:', response.data);
+      navigate('/AddExam2');
+    } catch (error) {
+      console.error('Exam creation failed:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  const handleBack = () => navigate('/dashboard');
+  const navigate = useNavigate();
+  const handleBack = () => {
+    navigate('/dashboard');
+  };
 
   return (
     <div className="add-exam-container">
@@ -50,80 +99,149 @@ const AddExam1 = () => {
         <p className="subtitle">Let's get started with some basic information</p>
       </div>
 
+      {submitError && (
+        <div className="alert alert-error">
+          {submitError}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="exam-form">
         <div className="form-grid">
           <div className="form-group">
             <label>Department</label>
-            <select name="department" value={examData.department} onChange={handleChange} required>
+            <select 
+              name="department" 
+              value={values.department} 
+              onChange={handleChange} 
+              className={errors.department ? 'error-input' : ''}
+            >
               <option value="">Select Department</option>
               <option value="cs">Computer Science</option>
               <option value="eng">Engineering</option>
               <option value="med">Medicine</option>
               <option value="bus">Business</option>
             </select>
+            {errors.department && <span className="error">{errors.department}</span>}
           </div>
 
           <div className="form-group">
             <label>Year</label>
-            <select name="year" value={examData.year} onChange={handleChange} required>
+            <select 
+              name="year" 
+              value={values.year} 
+              onChange={handleChange} 
+              className={errors.year ? 'error-input' : ''}
+            >
               <option value="">Select Year</option>
               <option value="1">First Year</option>
               <option value="2">Second Year</option>
               <option value="3">Third Year</option>
               <option value="4">Fourth Year</option>
             </select>
+            {errors.year && <span className="error">{errors.year}</span>}
           </div>
 
           <div className="form-group">
             <label>Subject</label>
-            <input type="text" name="subject" placeholder="Enter subject name"
-              value={examData.subject} onChange={handleChange} required />
+            <input 
+              type="text" 
+              name="subject" 
+              placeholder="Enter subject name"
+              value={values.subject} 
+              onChange={handleChange} 
+              className={errors.subject ? 'error-input' : ''}
+            />
+            {errors.subject && <span className="error">{errors.subject}</span>}
           </div>
 
           <div className="form-group">
             <label>No. Of Students</label>
-            <input type="number" name="studentCount" min="1" 
-              placeholder="Enter number of students" value={examData.studentCount} 
-              onChange={handleChange} required />
+            <input 
+              type="number" 
+              name="studentCount" 
+              min="1" 
+              placeholder="Enter number of students" 
+              value={values.studentCount} 
+              onChange={handleChange} 
+              className={errors.studentCount ? 'error-input' : ''}
+            />
+            {errors.studentCount && <span className="error">{errors.studentCount}</span>}
           </div>
 
           <div className="form-group">
             <label>Exam Date</label>
-            <input type="date" name="examDate" value={examData.examDate} 
-              onChange={handleChange} required />
+            <input 
+              type="date" 
+              name="examDate" 
+              value={values.examDate} 
+              onChange={handleChange} 
+              className={errors.examDate ? 'error-input' : ''}
+            />
+            {errors.examDate && <span className="error">{errors.examDate}</span>}
           </div>
 
           <div className="form-group">
             <label>Exam Time</label>
-            <input type="time" name="examTime" value={examData.examTime} 
-              onChange={handleChange} required />
+            <input 
+              type="time" 
+              name="examTime" 
+              value={values.examTime} 
+              onChange={handleChange} 
+              className={errors.examTime ? 'error-input' : ''}
+            />
+            {errors.examTime && <span className="error">{errors.examTime}</span>}
           </div>
 
           <div className="form-group">
             <label>Exam Duration (minutes)</label>
-            <input type="number" name="examDuration" min="1" 
-              placeholder="Enter duration in minutes" value={examData.examDuration} 
-              onChange={handleChange} required />
+            <input 
+              type="number" 
+              name="examDuration" 
+              min="1" 
+              placeholder="Enter duration in minutes" 
+              value={values.examDuration} 
+              onChange={handleChange} 
+              className={errors.examDuration ? 'error-input' : ''}
+            />
+            {errors.examDuration && <span className="error">{errors.examDuration}</span>}
           </div>
 
           <div className="form-group">
             <label>Total Mark</label>
-            <input type="number" name="totalMarks" min="1" 
-              placeholder="Enter total marks" value={examData.totalMarks} 
-              onChange={handleChange} required />
+            <input 
+              type="number" 
+              name="totalMarks" 
+              min="1" 
+              placeholder="Enter total marks" 
+              value={values.totalMarks} 
+              onChange={handleChange} 
+              className={errors.totalMarks ? 'error-input' : ''}
+            />
+            {errors.totalMarks && <span className="error">{errors.totalMarks}</span>}
           </div>
 
           <div className="form-group">
             <label>No. Of Exam Questions</label>
-            <input type="number" name="questionCount" min="1" 
-              placeholder="Enter number of questions" value={examData.questionCount} 
-              onChange={handleChange} required />
+            <input 
+              type="number" 
+              name="questionCount" 
+              min="1" 
+              placeholder="Enter number of questions" 
+              value={values.questionCount} 
+              onChange={handleChange} 
+              className={errors.questionCount ? 'error-input' : ''}
+            />
+            {errors.questionCount && <span className="error">{errors.questionCount}</span>}
           </div>
 
           <div className="form-group checkbox-group">
             <label className="checkbox-container">
-              <input type="checkbox" name="autoCorrection" 
-                checked={examData.autoCorrection} onChange={handleCheckboxChange} />
+              <input 
+                type="checkbox" 
+                name="autoCorrection" 
+                checked={values.autoCorrection} 
+                onChange={handleCheckboxChange} 
+              />
               <span className="checkmark"></span>
               <span className="checkbox-label">
                 Auto Correction
@@ -134,8 +252,12 @@ const AddExam1 = () => {
 
           <div className="form-group checkbox-group">
             <label className="checkbox-container">
-              <input type="checkbox" name="archiveExam" 
-                checked={examData.archiveExam} onChange={handleCheckboxChange} />
+              <input 
+                type="checkbox" 
+                name="archiveExam" 
+                checked={values.archiveExam} 
+                onChange={handleCheckboxChange} 
+              />
               <span className="checkmark"></span>
               <span className="checkbox-label">
                 Archive Exam
@@ -149,8 +271,12 @@ const AddExam1 = () => {
           <button type="button" className="back-button" onClick={handleBack}>
             ← Back to Dashboard
           </button>
-          <button type="submit" className="next-button">
-            Continue to Questions →
+          <button 
+            type="submit" 
+            className="next-button"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Submitting...' : 'Continue to Questions →'}
           </button>
         </div>
       </form>

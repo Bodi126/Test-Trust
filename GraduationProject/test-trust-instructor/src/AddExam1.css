@@ -39,6 +39,7 @@
   top: -20px;
   animation: fadeIn 0.6s ease-out forwards;
   opacity: 0;
+  overflow-y: auto;
 }
 
 /* Header Styles */
@@ -69,6 +70,8 @@
 /* Form Layout */
 .exam-form {
   width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .form-grid {
@@ -365,3 +368,4 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   pointer-events: none;
   opacity: 0.7;
 }
+

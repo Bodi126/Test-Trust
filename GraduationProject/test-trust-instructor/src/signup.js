@@ -1,5 +1,5 @@
 import './signup.css';
-import React, { use, useEffect, useState  } from 'react';
+import { useState  } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from './images/Logo.jpg';
 import axios from 'axios';

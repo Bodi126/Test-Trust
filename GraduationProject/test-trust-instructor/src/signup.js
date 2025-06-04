@@ -104,7 +104,7 @@ function Signup() {
                     className="signup-input"
                     onChange={handleChange}
                   />
-                    {<p style={{color: 'red'}}> {errors.firstName} </p>}
+                    {errors.firstName && <p style={{color: 'red'}}> {errors.firstName} </p>}
 
                 </div>
                 <div className="input-group">

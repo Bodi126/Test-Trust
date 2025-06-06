@@ -118,7 +118,7 @@ const handleTwoFactorToggle = async (event) => {
     const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 
     const response = await axios.post(
-      'http://localhost:5000/instructors/two-factor',
+      'http://localhost:5000/instructors/toggle-2fa',
       { email: currentUser.email, enabled },
       config
     );

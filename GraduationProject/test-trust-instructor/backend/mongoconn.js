@@ -7,11 +7,12 @@ const instructorRoutes = require("./routes/instructors");
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:3000',
+    origin: 'http://localhost:3000',
     credentials: true
 }));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/testtrust', {
     useNewUrlParser: true,

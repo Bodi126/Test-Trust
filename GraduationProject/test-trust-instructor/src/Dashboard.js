@@ -45,8 +45,8 @@ function Dashboard() {
           <button className="nav-button" onClick={() => navigate('/results')}>
             <i className="fas fa-chart-bar"></i> View Results
           </button>
-          <button className="nav-button" onClick={() => navigate('/settings')}>
-            <i className="fas fa-cog"></i> Settings
+          <button className="nav-button" onClick={() => navigate('/Settings')}>
+            <i className="fas fa-cog"></i> Profile
           </button>
           {/* Back to Home Button */}
           <button 

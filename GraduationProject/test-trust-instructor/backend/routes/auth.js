@@ -3,6 +3,8 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
 const Exam = require('../models/exam');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 router.post('/signup', async (req, res) => {
   try {
@@ -120,5 +122,101 @@ router.post('/AddExam1', async (req, res) => {
     });
   }
 });
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+router.post('/send-2fa-code', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Generate a 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes from now
+
+    user.twoFactorCode = code;
+    user.twoFactorExpires = expiresAt;
+    await user.save();
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Your 2FA Code',
+      text: `Your 2FA code is: ${code}. It will expire in 10 minutes.`
+    });
+
+    res.status(200).json({ message: '2FA code sent successfully' });
+  } catch (err) {
+    console.error('Error sending 2FA code:', err);
+    res.status(500).send('Internal server error');
+  }
+});
+
+router.post('/two-factor', async (req, res) => {
+  try {
+    const { email, enabled } = req.body;
+    const user = await User.findOneAndUpdate(
+      { email },
+      { twoFactorEnabled: enabled },
+      { new: true }
+    );
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({ success: true, twoFactorEnabled: user.twoFactorEnabled });
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+});
+
+router.post('/verify-2fa', async (req, res) => {
+  const { email, code } = req.body;
+
+  try {
+    const user = await User.findOne({
+      email,
+      twoFactorCode: code,
+      twoFactorExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ valid: false, message: 'Invalid or expired 2FA code' });
+    }
+
+    // Clear the 2FA code after successful verification
+    user.twoFactorCode = undefined;
+    user.twoFactorExpires = undefined;
+    await user.save();
+
+    const token = user.generateAuthToken(user);
+    res.json({
+      valid: true,
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        position: user.position,
+        idNumber: user.idNumber,
+        twoFactorEnabled: user.twoFactorEnabled // Add this line
+      }
+    });
+  } catch (error) {
+    console.error('Error verifying 2FA code:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 module.exports = router;

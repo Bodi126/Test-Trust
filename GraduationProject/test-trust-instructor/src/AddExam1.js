@@ -62,35 +62,43 @@ const AddExam1 = () => {
     setIsSubmitting(true);
 
     try {
-      // Normalize subject by trimming and lowercasing for consistency
-      const normalizedSubject = values.subject.trim().toLowerCase();
-      
-      const response = await axios.post('http://localhost:5000/auth/AddExam1', {
-        ...values,
-        subject: normalizedSubject, // Send normalized subject
+      const examData = {
+        department: values.department.trim(),
+        year: values.year.trim(),
+        subject: values.subject.trim().toLowerCase(),
         studentCount: Number(values.studentCount),
+        examDate: values.examDate,
+        examTime: values.examTime,
         examDuration: Number(values.examDuration),
         totalMarks: Number(values.totalMarks),
-        questionCount: Number(values.questionCount)
-      });
+        questionCount: Number(values.questionCount),
+        autoCorrection: values.autoCorrection,
+        archiveExam: values.archiveExam,
+        status: 'draft',
+        createdAt: new Date().toISOString()
+      };
+
+      const response = await axios.post('http://localhost:5000/exams/create', examData);
       
       navigate('/AddExam2', { 
         state: { 
           examData: {
-            ...values,
-            _id: response.data.examId
+            ...examData,
+            _id: response.data._id
           }
         } 
       });
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 
-                        error.response?.data?.error || 
-                        'Failed to create exam. Please try again.';
-      setSubmitError(errorMessage);
+      console.error('Error creating exam:', error);
+      setSubmitError(
+        error.response?.data?.message || 
+        'Failed to create exam. Please try again.'
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
+
   const handleBack = () => navigate('/dashboard');
 
   return (

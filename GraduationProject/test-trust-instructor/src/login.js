@@ -42,18 +42,25 @@ function Login() {
     const validationErrors = valid(values);
     setErrors(validationErrors);
 
-
     if (Object.keys(validationErrors).length === 0) {
-        axios.post('http://localhost:5000/auth/login', values)
-          .then(response => {
-            console.log(response.data);
+      axios.post('http://localhost:5000/auth/login', values)
+        .then(response => {
+          const user = response.data.user;
+          if (user.twoFactorEnabled) {
+            // Store user info temporarily if needed
+            localStorage.setItem('pendingUser', JSON.stringify(user));
+            // Redirect to 2FA page with email as query param
+            navigate(`/two-factor-auth?email=${encodeURIComponent(user.email)}`);
+          } else {
+            localStorage.setItem('user', JSON.stringify(user));
             setIsSubmitted(true);
             navigate('/dashboard');
-          })
-          .catch(error => {
-            setLoginError(error.response?.data?.message || 'Invalid credentials');
-          });
-      }}
+          }
+        })
+        .catch(error => {
+          setLoginError(error.response?.data?.message || 'Invalid credentials');
+        });
+    }}
 
 
   return (
@@ -71,11 +78,11 @@ function Login() {
 
         <form className="auth-form" onSubmit={validation}>
           <div className="input-group">
-            <label htmlFor="email">Email or ID</label>
+            <label htmlFor="email" className="email-label">Email</label>
             <input
               type="text"
               id="email"
-              placeholder="Enter your email or ID"
+              placeholder="Enter your Email address"
               name="email"
               value={values.email}
               onChange={handleChange}
@@ -85,7 +92,7 @@ function Login() {
           </div>
 
           <div className="input-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password" className='password-label'>Password</label>
             <input
               type="password"
               id="password"

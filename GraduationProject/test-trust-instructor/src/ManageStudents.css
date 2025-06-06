@@ -271,7 +271,7 @@ body {
 }
 
 .refresh-btn {
-  margin-top: 40px;
+  margin-top: 50px;
   margin-right: 10px;
   padding: 5px 20px;
   border-radius: 8px;
@@ -290,7 +290,7 @@ body {
   padding: 5px 20px;
   border-radius: 8px;
   border: none;
-  margin-top: 15px;
+  margin-top: 20px;
   margin-right: 20px;
   font-weight: 450;
   cursor: pointer;
@@ -313,15 +313,15 @@ body {
 }
 
 .refresh-btn:hover {
-  background: var(--light);
+  background: var(--light); 
 }
 
 .close-btn:hover {
-  background: #d90429;
+  background: #d90429 !important;
 }
 
 .spinning {
-  animation: spin 1s linear infinite;
+  animation: spin 2s linear infinite;
 }
 
 @keyframes spin {
@@ -353,34 +353,35 @@ body {
 
 .stat-label {
   font-size: 0.9rem;
-  color: var(--gray);
+  color: var(--gray) !important;
+  font-weight: 10px !important;
 }
 
 .stat-card.online {
-  background: rgba(76, 201, 240, 0.1);
-  border: 1px solid rgba(76, 201, 240, 0.3);
+  background: rgba(76, 201, 240, 0.1) !important;
+  border: 1px solid rgba(76, 201, 240, 0.3) !important;
 }
 
 .stat-card.online .stat-value {
-  color: var(--success);
+  color: var(--success) !important;
 }
 
 .stat-card.offline {
-  background: rgba(239, 35, 60, 0.1);
-  border: 1px solid rgba(239, 35, 60, 0.3);
+  background: rgba(239, 35, 60, 0.1) !important;
+  border: 1px solid rgba(239, 35, 60, 0.3) !important;
 }
 
 .stat-card.offline .stat-value {
-  color: var(--danger);
+  color: var(--danger) !important;
 }
 
 .stat-card.total {
-  background: rgba(67, 97, 238, 0.1);
-  border: 1px solid rgba(67, 97, 238, 0.3);
+  background: rgba(67, 97, 238, 0.1) !important;
+  border: 1px solid rgba(67, 97, 238, 0.3) !important;
 }
 
 .stat-card.total .stat-value {
-  color: var(--primary);
+  color: var(--primary) !important;
 }
 
 .management-container {

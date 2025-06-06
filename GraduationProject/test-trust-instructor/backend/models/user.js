@@ -6,7 +6,10 @@ const userSchema = new mongoose.Schema({
   idNumber: { type: Number, unique: true },
   position: String,
   email: { type: String, unique: true },
-  password: String
+  password: String,
+  twoFactorEnabled: { type: Boolean, default: false },
+  twoFactorCode: String,
+  twoFactorExpires: Date
 });
 
 module.exports = mongoose.model('User', userSchema, 'instructor');

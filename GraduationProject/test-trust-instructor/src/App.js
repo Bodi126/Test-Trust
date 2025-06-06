@@ -13,6 +13,8 @@ import ManageExams from './ManageExam';
 import ManageStudents from './ManageStudents';
 import ForgetPassword from './ForgetPassword';
 import ResetPassword from './ResetPassword';
+import Settings from './Settings';
+import TwoFactorAuth from './TwoFactorAuth';
 
 
 function App() {
@@ -34,113 +36,127 @@ function App() {
   }, []);
 
   return (
-    <Router>
-      <div className="App">
-        <nav className='app-navbar'>
-          <div className="navbar-brand">
-            <Link to="/">  {/* This will navigate to the home route */}
-              <img src={Logo} className="app-logo" alt="TestTrust Logo" />
-            </Link>
-          </div>  
-          
-          <ul className='nav-menu'>
-            <li className="nav-item">
-              <Link to="/dive-into" className="nav-link">Dive Into</Link>
-            </li>
-            <li className="nav-item">
-              <Link to="/about-us" className="nav-link">About Us</Link>
-            </li>
-            <li className="nav-item">
-              <Link to="/signup" className="nav-link">Join Us</Link>
-            </li>
-          </ul>        
-        </nav>
+ 
+      <Router>
+        <div className="App">
+          <nav className='app-navbar'>
+            <div className="navbar-brand">
+              <Link to="/">  {/* This will navigate to the home route */}
+                <img src={Logo} className="app-logo" alt="TestTrust Logo" />
+              </Link>
+            </div>  
+            
+            <ul className='nav-menu'>
+              <li className="nav-item">
+                <Link to="/dive-into" className="nav-link">Dive Into</Link>
+              </li>
+              <li className="nav-item">
+                <Link to="/about-us" className="nav-link">About Us</Link>
+              </li>
+              <li className="nav-item">
+                <Link to="/signup" className="nav-link">Join Us</Link>
+              </li>
+            </ul>        
+          </nav>
 
-        <Routes>
-          <Route path="/" element={
-            <div className="main-content">
-              <div className="content-wrapper">
-                <h1>Welcome to the TestTrust Community!</h1>
-                <p className="hero-description">
-                  A comprehensive learning management system where educators can:
-                </p>
-                <ul className="feature-list">
-                  <li>Create and manage assignments</li>
-                  <li>Grade submissions efficiently</li>
-                  <li>Add students and organize exams</li>
-                  <li>Monitor live exams in real-time</li>
-                  <li>Contribute to our open-source platform</li>
-                </ul>
-                <Link to="/login" className="cta-button">Get Started Now</Link>
+          <Routes>
+            <Route path="/" element={
+              <div className="main-content">
+                <div className="content-wrapper">
+                  <h1>Welcome to the TestTrust Community!</h1>
+                  <p className="hero-description">
+                    A comprehensive learning management system where educators can:
+                  </p>
+                  <ul className="feature-list">
+                    <li>Create and manage assignments</li>
+                    <li>Grade submissions efficiently</li>
+                    <li>Add students and organize exams</li>
+                    <li>Monitor live exams in real-time</li>
+                    <li>Contribute to our open-source platform</li>
+                  </ul>
+                  <Link to="/login" className="cta-button">Get Started Now</Link>
+                </div>
               </div>
-            </div>
-          } />
-          <Route path="/about-us" element={
-            <div className="main-content">
-              <AboutUs />
-            </div>
-          } />
-          <Route path="/login" element={
-            <div className="main-content">
-              <Login />
-            </div>
-          } />
-          <Route path="/signup" element={
-            <div className="main-content">
-              <Signup />
-            </div>
-          } />
-          <Route path="/dive-into" element={
-            <div className="main-content">
-              <DiveInto />
-            </div>
-          } />
-          {/* Add the Dashboard route */}
-          <Route path="/dashboard" element={
-            <div className="main-content">
-              <Dashboard />
-            </div>
-          } />
-          <Route path="/addexam1" element={
-            <div className="main-content">
-              <AddExam1 />
-            </div>
-          } />
-          <Route path="/addexam2" element={
-            <div className="main-content">
-              <AddExam2 />
-            </div>
-          } />
-          <Route path="/ManageExam" element={
-            <div className="main-content">
-              <ManageExams />
-            </div>
-          } />
-          <Route path="/ManageStudents" element={
-            <div className="main-content">
-              <ManageStudents />
-            </div>
-          } />
-          <Route path="/ForgetPassword" element={
-            <div className="main-content">
-              <ForgetPassword />
-            </div>
-          } />
-          <Route path="/ResetPassword" element={
-            <div className="main-content">
-              <ResetPassword />
-            </div>
-          } />
-        </Routes>
+            } />
+            <Route path="/about-us" element={
+              <div className="main-content">
+                <AboutUs />
+              </div>
+            } />
+            <Route path="/login" element={
+              <div className="main-content">
+                <Login />
+              </div>
+            } />
+            <Route path="/signup" element={
+              <div className="main-content">
+                <Signup />
+              </div>
+            } />
+            <Route path="/dive-into" element={
+              <div className="main-content">
+                <DiveInto />
+              </div>
+            } />
+            {/* Add the Dashboard route */}
+            <Route path="/dashboard" element={
+              <div className="main-content">
+                <Dashboard />
+              </div>
+            } />
+            <Route path="/addexam1" element={
+              <div className="main-content">
+                <AddExam1 />
+              </div>
+            } />
+            <Route path="/addexam2" element={
+              <div className="main-content">
+                <AddExam2 />
+              </div>
+            } />
+            <Route path="/ManageExam" element={
+              <div className="main-content">
+                <ManageExams />
+              </div>
+            } />
+            <Route path="/ManageStudents" element={
+              <div className="main-content">
+                <ManageStudents />
+              </div>
+            } />
+            <Route path="/ForgetPassword" element={
+              <div className="main-content">
+                <ForgetPassword />
+              </div>
+            } />
+            <Route path="/ResetPassword" element={
+              <div className="main-content">
+                <ResetPassword />
+              </div>
+            } />
+            <Route path="/settings" element={
+              <div className="main-content">
+                <Settings />
+              </div>
+            } />
+            <Route path="/two-factor-auth" element={
+              <div className="main-content">
+                <TwoFactorAuth />
+              </div>
+            } />
 
-        <div className="background-shapes">
-          <div className="shape shape-1"></div>
-          <div className="shape shape-2"></div>
-          <div className="shape shape-3"></div>
-          <div className="shape shape-4"></div>
+
+          </Routes>
+
+          <div className="background-shapes">
+            <div className="shape shape-1"></div>
+            <div className="shape shape-2"></div>
+            <div className="shape shape-3"></div>
+            <div className="shape shape-4"></div>
+          </div>
         </div>
-      </div>
-    </Router>
+      </Router>
+
   );
 }
 

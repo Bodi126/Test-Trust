@@ -286,7 +286,7 @@ html, body, #root, .App {
 
 .stat-card {
   flex: 1;
-  background-color: white;
+  background-color: white !important;
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
@@ -294,7 +294,7 @@ html, body, #root, .App {
 }
 
 .stat-card h4 {
-  color: #7f8c8d;
+  color: #000000 !important;
   margin-bottom: 10px;
   font-size: 1rem;
 }

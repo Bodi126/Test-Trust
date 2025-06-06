@@ -325,6 +325,7 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   color: var(--gray);
+  margin-bottom: 20px;
 }
 
 .exam-action-btn:hover {
@@ -335,16 +336,19 @@ body {
 .exam-action-btn.view {
   color: var(--primary);
   display: var(--primary);
+  background:transparent !important;
 }
 
 .exam-action-btn.edit {
   color: var(--warning);
   display: var(--warning);
+  background: transparent !important;
 }
 
 .exam-action-btn.delete {
   color: var(--danger);
   display: var(--danger);
+  background: transparent !important;
 }
 
 /* Exam Details Section */

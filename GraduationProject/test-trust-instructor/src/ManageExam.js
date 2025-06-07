@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiTrash2, FiEdit, FiChevronDown, FiChevronUp, FiSave, FiX, FiEye, FiArrowDownLeft, FiArrowLeft } from 'react-icons/fi';
+import { FiTrash2, FiEdit, FiSave, FiX, FiEye, FiArrowLeft } from 'react-icons/fi';
 import { FaSearch, FaFilter } from 'react-icons/fa';
 import './ManageExam.css';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const subjectIcons = {
   'Mathematics': '∫',
@@ -17,70 +17,36 @@ const subjectIcons = {
 };
 
 const ManageExam = () => {
-  const [exams, setExams] = useState([
-    {
-      id: 1,
-      subject: 'Mathematics',
-      year: '2023',
-      date: '2023-05-15',
-      students: 45,
-      doctor: 'Dr. Ahmed Mohamed',
-      questions: 30,
-      department: 'Engineering',
-      details: {
-        duration: '2 hours',
-        totalMarks: 100,
-        instructions: 'Answer all questions. Calculators are allowed.'
-      },
-      questionsList: [
-        { id: 1, type: 'MCQ', question: 'What is 2+2?', options: ['3', '4', '5', '6'], answer: '4' },
-        { id: 2, type: 'TrueFalse', question: 'The Earth is flat.', answer: 'False' },
-        { id: 3, type: 'Written', question: 'Explain the theory of relativity.', answer: 'The theory of relativity...' },
-        { id: 4, type: 'Matching', question: 'Match the following:', options: [
-          { left: 'Capital of France', right: 'Paris' },
-          { left: 'Capital of Germany', right: 'Berlin' }
-        ], answer: '' }
-      ]
-    },
-    {
-      id: 2,
-      subject: 'Physics',
-      year: '2023',
-      date: '2023-06-20',
-      students: 32,
-      doctor: 'Dr. Sarah Johnson',
-      questions: 25,
-      department: 'Science',
-      details: {
-        duration: '1.5 hours',
-        totalMarks: 80,
-        instructions: 'Show all your work for full credit.'
-      },
-      questionsList: [
-        { id: 1, type: 'MCQ', question: 'What is the unit of force?', options: ['Newton', 'Joule', 'Watt', 'Pascal'], answer: 'Newton' },
-        { id: 2, type: 'TrueFalse', question: 'Light travels faster than sound.', answer: 'True' }
-      ]
-    },
-    {
-      id: 3,
-      subject: 'Biology',
-      year: '2024',
-      date: '2024-02-10',
-      students: 28,
-      doctor: 'Dr. Michael Chen',
-      questions: 20,
-      department: 'Medicine',
-      details: {
-        duration: '1 hour',
-        totalMarks: 60,
-        instructions: 'Choose the best answer for each question.'
-      },
-      questionsList: [
-        { id: 1, type: 'MCQ', question: 'Which organ pumps blood?', options: ['Liver', 'Heart', 'Lung', 'Kidney'], answer: 'Heart' },
-        { id: 2, type: 'Written', question: 'Describe the process of photosynthesis.', answer: 'Photosynthesis is...' }
-      ]
-    }
-  ]);
+  const [exams, setExams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+
+  React.useEffect(() => {
+    const fetchExams = async () => {
+      try {
+        const userEmail = localStorage.getItem('userEmail');
+        if (!userEmail) {
+          setError('User not logged in.');
+          setLoading(false);
+          return;
+        }
+        const response = await fetch(`http://localhost:5000/auth/my-exams?user=${encodeURIComponent(userEmail)}`);
+        const data = await response.json();
+        if (response.ok) {
+          setExams(data.exams || []);
+        } else {
+          setError(data.message || 'Failed to fetch exams');
+        }
+      } catch (err) {
+        setError('Error fetching exams');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchExams();
+  }, []);
+
 
   const [expandedExam, setExpandedExam] = useState(null);
   const [editingExam, setEditingExam] = useState(null);
@@ -170,7 +136,7 @@ const ManageExam = () => {
         </div>
         <div className="exams-list">
           {filteredExams.map(exam => (
-            <React.Fragment key={exam.id}>
+            <React.Fragment key={exam.id || exam._id}>
               <div className="exam-card" onClick={() => setExpandedExam(expandedExam === exam.id ? null : exam.id)}>
                 <div className="exam-subject">
                   <div className="exam-subject-icon">
@@ -179,13 +145,13 @@ const ManageExam = () => {
                   <div>
                     <div>{exam.subject}</div>
                     <div className="exam-meta">
-                      <span><strong>Dept:</strong> {exam.department}</span>
-                      <span><strong>Questions:</strong> {exam.questions}</span>
+                      <span><strong>Dept:</strong> {exam.department || 'N/A'}</span>
+                      <span><strong>Questions:</strong> {exam.questions || exam.questionCount || 0}</span>
                     </div>
                   </div>
                 </div>
-                <div className="exam-meta">{exam.date}</div>
-                <div className="exam-meta">{exam.students} students</div>
+                <div className="exam-meta">{exam.date || exam.examDate || 'N/A'}</div>
+                <div className="exam-meta">{exam.students || exam.studentCount || 0} students</div>
                 <div className="exam-actions">
                   <button 
                     className="exam-action-btn view"

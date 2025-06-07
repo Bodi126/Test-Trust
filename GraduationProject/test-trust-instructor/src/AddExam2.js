@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './AddExam2.css';
 
@@ -18,33 +19,43 @@ const AddExam2 = () => {
   const [questions, setQuestions] = useState([]);
   const [questionText, setQuestionText] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const autoCorrection = examData?.autoCorrection || false;
 
   useEffect(() => {
+    if (!examData) {
+      navigate('/AddExam1');
+      return;
+    }
     setQuestionText('');
     setAnswer({});
-  }, [questionType, currentQuestion]);
+  }, [questionType, currentQuestion, examData, navigate]);
 
   const handleQuestionTypeChange = (type) => {
     setQuestionType(type);
     setExpanded(true);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+
     if (!questionText) {
       alert('Please enter the question text');
+      setIsSubmitting(false);
       return;
     }
 
     if (autoCorrection && questionType === 'mcq' && !answer.correctOption) {
       alert('Please select the correct answer');
+      setIsSubmitting(false);
       return;
     }
 
     if (autoCorrection && questionType === 'trueFalse' && !answer.trueFalseAnswer) {
       alert('Please select the correct answer');
+      setIsSubmitting(false);
       return;
     }
 
@@ -53,25 +64,48 @@ const AddExam2 = () => {
       type: questionType,
       question: questionText,
       autoCorrect: autoCorrection,
-      answer
+      answer: answer || {}
     };
-    
-    setQuestions([...questions, newQuestion]);
+
+    const allQuestions = [...questions, newQuestion];
     
     if (currentQuestion < examData.questionCount) {
+      setQuestions(allQuestions);
       setCurrentQuestion(currentQuestion + 1);
       setExpanded(false);
       setQuestionType('');
-    } else {
-      navigate('/exam-review', { 
-        state: { 
-          examData: {
-            ...examData,
-            archiveExam: examData.archiveExam || false
-          }, 
-          questions: [...questions, newQuestion] 
-        } 
-      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Final submission
+    try {
+      const payload = {
+        examId: examData._id,
+        questions: allQuestions.map(q => ({
+          ...q,
+          number: parseInt(q.number),
+          answer: q.answer || {}
+        }))
+      };
+
+      const response = await axios.post(
+        'http://localhost:5000/auth/add-questions-and-answers', 
+        payload
+      );
+
+      console.log('Questions saved successfully:', response.data);
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Error saving questions:', err);
+      alert(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Failed to save questions. Please check console for details.'
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -83,7 +117,7 @@ const AddExam2 = () => {
       const prevQuestion = questions[questions.length - 1];
       setQuestionType(prevQuestion.type);
       setQuestionText(prevQuestion.question);
-      setAnswer(prevQuestion.answer);
+      setAnswer(prevQuestion.answer || {});
       setQuestions(questions.slice(0, -1));
       setExpanded(true);
     }
@@ -230,6 +264,10 @@ const AddExam2 = () => {
     }
   };
 
+  if (!examData) {
+    return null; // Or redirect to AddExam1
+  }
+
   return (
     <div className="exam-creator-container">
       <div className="progress-display">
@@ -269,21 +307,24 @@ const AddExam2 = () => {
               type="button"
               className="nav-button back"
               onClick={handleBack}
+              disabled={isSubmitting}
             >
               Back
             </button>
             <button
               type="submit"
               className="nav-button next"
-              disabled={!questionType || !questionText}
+              disabled={!questionType || !questionText || isSubmitting}
               onClick={handleSubmit}
             >
-              {currentQuestion < examData.questionCount ? 'Next' : 'Finish'}
+              {isSubmitting ? 'Saving...' : 
+               currentQuestion < examData.questionCount ? 'Next' : 'Finish'}
             </button>
 
             <button 
               className="dashboard-button"
               onClick={() => navigate('/dashboard')}
+              disabled={isSubmitting}
             >
               ← Back to Dashboard
             </button>

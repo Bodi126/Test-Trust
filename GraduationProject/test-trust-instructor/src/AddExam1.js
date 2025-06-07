@@ -62,6 +62,12 @@ const AddExam1 = () => {
     setIsSubmitting(true);
 
     try {
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail) {
+        setSubmitError('User email not found. Please log in again.');
+        setIsSubmitting(false);
+        return;
+      }
       const examData = {
         department: values.department.trim(),
         year: values.year.trim(),
@@ -75,23 +81,26 @@ const AddExam1 = () => {
         autoCorrection: values.autoCorrection,
         archiveExam: values.archiveExam,
         status: 'draft',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        createdBy: userEmail // Set the creator from localStorage
       };
 
-      const response = await axios.post('http://localhost:5000/exams/create', examData);
+      const response = await axios.post('http://localhost:5000/auth/AddExam1', examData);
       
       navigate('/AddExam2', { 
         state: { 
           examData: {
             ...examData,
-            _id: response.data._id
+            _id: response.data.examId
           }
         } 
       });
     } catch (error) {
       console.error('Error creating exam:', error);
       setSubmitError(
-        error.response?.data?.message || 
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
         'Failed to create exam. Please try again.'
       );
     } finally {

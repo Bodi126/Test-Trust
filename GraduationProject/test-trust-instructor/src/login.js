@@ -28,7 +28,7 @@ function Login() {
   });
 
   const [errors, setErrors] = useState({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
+
   const [loginError, setLoginError] = useState('');
   const navigate = useNavigate();
 
@@ -49,11 +49,13 @@ function Login() {
           if (user.twoFactorEnabled) {
             // Store user info temporarily if needed
             localStorage.setItem('pendingUser', JSON.stringify(user));
+            localStorage.setItem('userEmail', user.email); // Always set userEmail
             // Redirect to 2FA page with email as query param
             navigate(`/two-factor-auth?email=${encodeURIComponent(user.email)}`);
           } else {
             localStorage.setItem('user', JSON.stringify(user));
-            setIsSubmitted(true);
+            localStorage.setItem('userEmail', user.email); // Always set userEmail
+
             navigate('/dashboard');
           }
         })

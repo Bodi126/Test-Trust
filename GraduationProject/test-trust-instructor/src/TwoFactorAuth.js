@@ -47,19 +47,33 @@ const TwoFactorAuth = () => {
     }
     
     setLoading(true);
+    setError('');
+    
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/verify-2fa', {
+      console.log('Verifying 2FA code...');
+      const response = await axios.post('http://localhost:5000/verify-2fa', {
         email,
-        code
+        code: parseInt(code, 10) // Convert code to number
       });
       
+      console.log('Verification response:', response.data);
+      
       if (response.data.valid) {
+        // Save token and user data
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
-        navigate('/Dashboard');
+        
+        // Navigate to dashboard
+        navigate('/dashboard');
+      } else {
+        setError(response.data.message || 'Verification failed');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Verification failed');
+      console.error('Verification error:', err);
+      const errorMessage = err.response?.data?.message || 
+                         err.response?.data?.error || 
+                         'Failed to verify code. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

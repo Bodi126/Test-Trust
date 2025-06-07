@@ -49,6 +49,10 @@ const examSchema = new mongoose.Schema({
     archiveExam: {
         type: Boolean,
         default: false
+    },
+    createdBy: {
+        type: String,
+        required: true
     }
 }, { timestamps: true }); // Adds createdAt and updatedAt
 

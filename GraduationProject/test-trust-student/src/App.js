@@ -6,6 +6,7 @@ import SignUp from './signup';
 import Logo from './logo.svg';
 import AboutUs from './AboutUs';
 import DiveInto from './DiveInto';
+import SignupPage from './SignupPage';
 
 
 // Navbar Component
@@ -46,7 +47,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
+          <Route path="/signup" element={<SignupPage />} />
            <Route path="/about-us" element={<AboutUs />} />
            <Route path="/dive-into" element={<DiveInto />} />
           {/* Other routes would go here */}

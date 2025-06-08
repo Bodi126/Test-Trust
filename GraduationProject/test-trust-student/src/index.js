@@ -9,6 +9,7 @@ import reportWebVitals from './reportWebVitals';
 import UpcomingExams from './UpcomingExams';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import PracticeTests from './PracticeTests';
+import ExamPage from './ExamPage';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

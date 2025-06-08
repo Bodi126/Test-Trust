@@ -191,7 +191,7 @@ const ManageExam = () => {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
+                    
                   >
                     <div className="details-grid">
                       <div className="details-section">
@@ -217,11 +217,11 @@ const ManageExam = () => {
                         <h4>Exam Specifications</h4>
                         <div className="details-item">
                           <span className="details-item-label">Duration:</span>
-                          <span className="details-item-value">{exam.details.duration}</span>
+                          <span className="details-item-value">{exams.examDuration?.examDuration || 'N/A'}</span>
                         </div>
                         <div className="details-item">
                           <span className="details-item-label">Total Marks:</span>
-                          <span className="details-item-value">{exam.details.totalMarks}</span>
+                          <span className="details-item-value">{exam.totalMarks?.totalMarks || 'N/A'}</span>
                         </div>
                         <div className="details-item">
                           <span className="details-item-label">Doctor:</span>
@@ -234,7 +234,7 @@ const ManageExam = () => {
                       </div>
                       <div className="details-section">
                         <h4>Instructions</h4>
-                        <p>{exam.details.instructions}</p>
+                        <p>{exam.instructions?.instructions || 'N/A'}</p>
                       </div>
                     </div>
                     <div className="exam-full-actions">

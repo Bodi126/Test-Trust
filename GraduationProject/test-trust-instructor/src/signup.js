@@ -21,11 +21,11 @@ function valid(values) {
     }
 
     if (!values.idNumber.trim()) {
-        errors.idNumber = "Last ID is required!";
+        errors.idNumber = "ID number is required!";
     }
 
     if (!values.position.trim()) {
-        errors.position = "Last position is required!";
+        errors.position = "Position is required!";
     }
 
     if (!values.email.trim()) {
@@ -46,6 +46,7 @@ function valid(values) {
 
 
 function Signup() {
+  const navigate = useNavigate();
   const [values, setValues] = useState({
     firstName:'',
     lastName:'',
@@ -66,18 +67,21 @@ function Signup() {
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length === 0) {
-    axios.post('http://localhost:5000/auth/signup', values)
+    axios.post('http://localhost:5000/api/auth/signup', values, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
       .then(response => {
         console.log(response.data);
         setIsSubmitted(true);
         navigate('/login');
       })
       .catch(error => {
-        console.error('Error during signup:', error);
+        console.error('Error during signup:', error.response?.data || error.message);
+        alert(error.response?.data?.message || 'Failed to sign up. Please try again.');
       });
   }}
-
-  const navigate = useNavigate();
 
   return (
     <div className="signup-container">
@@ -183,7 +187,6 @@ function Signup() {
               <button 
                 type="submit" 
                 className="signup-button"
-                //onClick={() => navigate('/Dashboard')}
               >
                 Create Account
               </button>

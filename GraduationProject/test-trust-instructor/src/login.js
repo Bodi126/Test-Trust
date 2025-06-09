@@ -43,26 +43,37 @@ function Login() {
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length === 0) {
-      axios.post('http://localhost:5000/auth/login', values)
-        .then(response => {
-          const user = response.data.user;
-          if (user.twoFactorEnabled) {
-            // Store user info temporarily if needed
-            localStorage.setItem('pendingUser', JSON.stringify(user));
-            localStorage.setItem('userEmail', user.email); // Always set userEmail
-            // Redirect to 2FA page with email as query param
-            navigate(`/two-factor-auth?email=${encodeURIComponent(user.email)}`);
-          } else {
-            localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('userEmail', user.email); // Always set userEmail
-
-            navigate('/dashboard');
-          }
-        })
-        .catch(error => {
-          setLoginError(error.response?.data?.message || 'Invalid credentials');
-        });
-    }}
+      try {
+        console.log('Attempting login with:', values.email);
+        const response = await axios.post('http://localhost:5000/auth/login', values);
+        const { user, token } = response.data;
+        
+        console.log('Login successful, user:', user);
+        console.log('Token received:', token ? 'Token received' : 'No token');
+        
+        if (user.twoFactorEnabled) {
+          console.log('2FA enabled, redirecting to 2FA page');
+          localStorage.setItem('pendingUser', JSON.stringify(user));
+          localStorage.setItem('pendingToken', token);
+          localStorage.setItem('userEmail', user.email);
+          navigate(`/two-factor-auth?email=${encodeURIComponent(user.email)}`);
+        } else {
+          console.log('Regular login, storing token and redirecting');
+          localStorage.setItem('user', JSON.stringify(user));
+          localStorage.setItem('token', token);
+          localStorage.setItem('userEmail', user.email);
+          
+          // Force a page reload to ensure all components get the new auth state
+          window.location.href = '/dashboard';
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        const errorMessage = error.response?.data?.message || 'Invalid credentials';
+        console.log('Login failed:', errorMessage);
+        setLoginError(errorMessage);
+      }
+    }
+  }
 
 
   return (

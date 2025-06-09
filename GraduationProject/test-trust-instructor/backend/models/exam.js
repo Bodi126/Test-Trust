@@ -56,4 +56,4 @@ const examSchema = new mongoose.Schema({
     }
 }, { timestamps: true }); // Adds createdAt and updatedAt
 
-module.exports = mongoose.model('Exam', examSchema);
+module.exports = mongoose.model('Exam', examSchema, 'exams');

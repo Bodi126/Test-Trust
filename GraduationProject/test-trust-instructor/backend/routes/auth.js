@@ -3,9 +3,10 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const User = require('../models/user');
+const ModelAnswer = require('../models/modelAnswer');
 const Exam = require('../models/exam');
 const Question = require('../models/question');
-const ModelAnswer = require('../models/modelAnswer');
+
 
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
@@ -41,14 +42,23 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     console.log(`[LOGIN] Attempt for email: ${email}`);
 
-    const user = await User.findOne({ email });
+    // Trim and normalize email for case-insensitive search
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    // Find user with case-insensitive email search
+    const user = await User.findOne({ email: { $regex: new RegExp(`^${normalizedEmail}$`, 'i') } });
+    
     if (!user) {
       console.log(`[LOGIN] Failed: User not found for email: ${email}`);
-      return res.status(401).json({ message: 'User not found. Please check your email.' });
+      return res.status(401).json({ message: 'Invalid email or password.' });
     }
-    if (user.password !== password) {
+    
+    // Trim and compare passwords
+    const trimmedPassword = password.trim();
+    if (user.password !== trimmedPassword) {
       console.log(`[LOGIN] Failed: Password mismatch for email: ${email}`);
-      return res.status(401).json({ message: 'Incorrect password. Please try again.' });
+      console.log(`[DEBUG] Expected: ${user.password}, Got: ${trimmedPassword}`);
+      return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
     if (user.twoFactorEnabled) {
@@ -190,154 +200,6 @@ router.post('/AddExam1', async (req, res) => {
   }
 });
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
-
-router.post('/send-2fa-code', async (req, res) => {
-  const { email } = req.body;
-  console.log('[2FA] /send-2fa-code called with email:', email);
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      console.log('[2FA] User not found for email:', email);
-      return res.status(404).json({ message: 'User not found' });
-    }
-    console.log('[2FA] User found:', user.email);
-
-    // Generate a 6-digit code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes from now
-
-    user.twoFactorCode = code;
-    user.twoFactorExpires = expiresAt;
-    await user.save();
-    console.log('[2FA] Code and expiry saved to user:', code, expiresAt);
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'Your 2FA Code',
-      text: `Your 2FA code is: ${code}. It will expire in 10 minutes.`
-    });
-    console.log('[2FA] Email sent to:', email);
-
-    res.status(200).json({ message: '2FA code sent successfully' });
-  } catch (err) {
-    console.error('[2FA] Error sending 2FA code:', err);
-    res.status(500).send('Internal server error');
-  }
-});
-
-// [REMOVED DUPLICATE /two-factor ENDPOINT] - Use /toggle-2fa in instructors.js instead
-
-router.post('/verify-2fa', async (req, res) => {
-  const { email, code } = req.body;
-  
-  console.log('\n[2FA VERIFY] =======================');
-  console.log(`[2FA VERIFY] Attempt for email: ${email}`);
-  console.log(`[2FA VERIFY] Code received (type: ${typeof code}):`, code);
-
-  if (!email || code === undefined || code === '') {
-    console.log('[2FA VERIFY] Missing email or code');
-    return res.status(400).json({ valid: false, message: 'Email and code are required' });
-  }
-
-  try {
-    // Convert code to number and validate
-    const codeNum = Number(code);
-    if (isNaN(codeNum) || codeNum < 100000 || codeNum > 999999) {
-      console.log('[2FA VERIFY] Invalid code format');
-      return res.status(400).json({ valid: false, message: 'Invalid code format. Must be a 6-digit number.' });
-    }
-
-    // Find user by email
-    const user = await User.findOne({ email });
-    
-    if (!user) {
-      console.log(`[2FA VERIFY] User not found for email: ${email}`);
-      return res.status(400).json({ valid: false, message: 'User not found' });
-    }
-
-    // Debug logging
-    console.log(`[2FA VERIFY] User found: ${user.email}`);
-    console.log(`[2FA VERIFY] Expected code (type: ${typeof user.twoFactorCode}):`, user.twoFactorCode);
-    console.log(`[2FA VERIFY] Code expires at: ${user.twoFactorExpires}`);
-    console.log(`[2FA VERIFY] Current time: ${new Date()}`);
-    
-    // Check if code exists
-    if (user.twoFactorCode === null || user.twoFactorCode === undefined) {
-      console.log('[2FA VERIFY] No 2FA code found for user');
-      return res.status(400).json({ valid: false, message: 'No 2FA code found. Please request a new code.' });
-    }
-    
-    // Check if code matches (strict number comparison)
-    if (user.twoFactorCode !== codeNum) {
-      console.log(`[2FA VERIFY] Code does not match. Expected: ${user.twoFactorCode}, Got: ${codeNum}`);
-      return res.status(400).json({ 
-        valid: false, 
-        message: 'Invalid code. Please try again.',
-        details: {
-          expectedType: typeof user.twoFactorCode,
-          receivedType: typeof codeNum,
-          receivedValue: code
-        }
-      });
-    }
-    
-    // Check if code is expired
-    if (new Date() > user.twoFactorExpires) {
-      console.log('[2FA VERIFY] Code has expired');
-      return res.status(400).json({ valid: false, message: 'Code has expired. Please request a new one.' });
-    }
-
-    // Clear the 2FA code after successful verification
-    user.twoFactorCode = undefined;
-    user.twoFactorExpires = undefined;
-    await user.save();
-
-    console.log('[2FA VERIFY] Code verified successfully');
-    
-    // Generate token with user data
-    const token = user.generateAuthToken(user);
-    
-    // Prepare user response
-    const userResponse = {
-      id: user._id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      position: user.position,
-      idNumber: user.idNumber,
-      twoFactorEnabled: user.twoFactorEnabled
-    };
-    
-    console.log(`[2FA VERIFY] Successfully authenticated user: ${user.email}`);
-    console.log('==================================\n');
-    
-    res.json({
-      valid: true,
-      token,
-      user: userResponse
-    });
-    
-  } catch (error) {
-    console.error('\n[2FA VERIFY] Error:', error);
-    res.status(500).json({ 
-      valid: false, 
-      message: 'Internal server error', 
-      error: error.message 
-    });
-  }
-});
-
-
-// Save questions for an exam
 router.post('/add-questions', async (req, res) => {
   try {
     const { examId, questions } = req.body;
@@ -386,18 +248,54 @@ router.post('/add-questions-and-answers', async (req, res) => {
 
     // Prepare and insert model answers if autoCorrect is enabled
     const modelAnswersToSave = [];
+    
+    // Debug: Log database connection state
+    console.log('Mongoose connection state:', mongoose.connection.readyState);
+    // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+    
+    // Process each saved question to prepare model answers
     savedQuestions.forEach((savedQ, idx) => {
-      // If the original question had autoCorrect true and an answer, save it in ModelAnswer
-      if (questions[idx].autoCorrect && questions[idx].answer !== undefined && questions[idx].answer !== null) {
+      const questionData = questions[idx];
+      const shouldSave = questionData.autoCorrect && 
+                       questionData.answer !== undefined && 
+                       questionData.answer !== null;
+      
+      console.log('Processing question for model answer:', {
+        questionId: savedQ._id,
+        autoCorrect: questionData.autoCorrect,
+        hasAnswer: questionData.answer !== undefined && questionData.answer !== null,
+        shouldSave: shouldSave
+      });
+      
+      if (shouldSave) {
         modelAnswersToSave.push({
           questionId: savedQ._id,
-          answer: questions[idx].answer
+          answer: questionData.answer
         });
       }
     });
+    
     let savedModelAnswers = [];
     if (modelAnswersToSave.length > 0) {
-      savedModelAnswers = await ModelAnswer.insertMany(modelAnswersToSave);
+      console.log('Attempting to save model answers:', JSON.stringify(modelAnswersToSave, null, 2));
+      
+      try {
+        // First, delete any existing model answers for these questions to prevent duplicates
+        const questionIds = modelAnswersToSave.map(ma => ma.questionId);
+        await ModelAnswer.deleteMany({ questionId: { $in: questionIds } });
+        
+        // Save new model answers
+        savedModelAnswers = await ModelAnswer.insertMany(modelAnswersToSave, { ordered: false });
+        console.log('Successfully saved model answers:', savedModelAnswers);
+      } catch (error) {
+        console.error('Error saving model answers:', error);
+        if (error.writeErrors) {
+          console.error('Detailed write errors:', error.writeErrors);
+        }
+        throw error; // Re-throw to be caught by the outer try-catch
+      }
+    } else {
+      console.log('No model answers to save');
     }
 
     res.status(201).json({
@@ -426,6 +324,186 @@ router.get('/my-exams', async (req, res) => {
   } catch (err) {
     console.error('Error fetching user exams:', err);
     res.status(500).json({ message: 'Failed to fetch exams', error: err.message });
+  }
+});
+
+// Get model answers for multiple questions
+router.get('/model-answers/batch', async (req, res) => {
+  try {
+    const { questionIds } = req.query;
+    if (!questionIds || !Array.isArray(questionIds)) {
+      return res.status(400).json({ message: 'Question IDs array is required' });
+    }
+
+    const modelAnswers = await ModelAnswer.find({
+      questionId: { $in: questionIds }
+    });
+
+    // Convert to a map for easier lookup
+    const modelAnswerMap = modelAnswers.reduce((acc, ma) => {
+      acc[ma.questionId] = ma.answer;
+      return acc;
+    }, {});
+
+    res.status(200).json(modelAnswerMap);
+  } catch (err) {
+    console.error('Error fetching model answers:', err);
+    res.status(500).json({ message: 'Failed to fetch model answers', error: err.message });
+  }
+});
+
+// Get questions for a specific exam
+router.get('/exam-questions/:examId', async (req, res) => {
+  try {
+    const { examId } = req.params;
+    
+    // Validate examId
+    if (!mongoose.Types.ObjectId.isValid(examId)) {
+      return res.status(400).json({ error: 'Invalid exam ID format' });
+    }
+
+    // Find questions with their model answers
+    const questions = await Question.aggregate([
+      { $match: { examId: new mongoose.Types.ObjectId(examId) } },
+      { $sort: { number: 1 } },
+      {
+        $lookup: {
+          from: 'questions',
+          localField: '_id',
+          foreignField: 'questionId',
+          as: 'modelAnswer'
+        }
+      },
+      {
+        $addFields: {
+          modelAnswer: { $arrayElemAt: ['$modelAnswer', 0] }
+        }
+      }
+    ]);
+
+    if (!questions || questions.length === 0) {
+      return res.status(404).json({ error: 'No questions found for this exam' });
+    }
+
+    // Format the response
+    const formattedQuestions = questions.map(q => ({
+      _id: q._id,
+      examId: q.examId,
+      number: q.number,
+      type: q.type,
+      question: q.question,
+      autoCorrect: q.autoCorrect,
+      answer: q.answer,
+      modelAnswer: q.modelAnswer?.answer,
+      marks: q.marks || 1
+    }));
+
+    res.json(formattedQuestions);
+  } catch (err) {
+    console.error('Error fetching questions:', err);
+    res.status(500).json({ error: 'Server error while fetching questions' });
+  }
+});
+
+router.post('/questions', async (req, res) => {
+  try {
+    const { examId, ...questionData } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(examId)) {
+      return res.status(400).json({ error: 'Invalid exam ID' });
+    }
+
+    // Verify exam exists
+    const examExists = await Exam.findById(examId);
+    if (!examExists) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+
+    // Create and save question
+    const question = new Question({
+      ...questionData,
+      examId,
+      number: parseInt(questionData.number) || 1
+    });
+
+    await question.save();
+
+    // Update exam's question count
+    await Exam.findByIdAndUpdate(examId, {
+      $inc: { questionCount: 1 }
+    });
+
+    res.status(201).json(question);
+  } catch (err) {
+    console.error('Error creating question:', err);
+    res.status(500).json({ error: 'Failed to create question' });
+  }
+});
+
+// Update question
+router.put('/questions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid question ID' });
+    }
+
+    const question = await Question.findByIdAndUpdate(id, updates, { new: true });
+    if (!question) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    res.json(question);
+  } catch (err) {
+    console.error('Error updating question:', err);
+    res.status(500).json({ error: 'Failed to update question' });
+  }
+});
+
+// Delete question
+router.delete('/questions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid question ID' });
+    }
+
+    const question = await Question.findByIdAndDelete(id);
+    if (!question) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    // Update exam's question count
+    await Exam.findByIdAndUpdate(question.examId, {
+      $inc: { questionCount: -1 }
+    });
+
+    res.json({ message: 'Question deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting question:', err);
+    res.status(500).json({ error: 'Failed to delete question' });
+  }
+});
+
+
+// Add this API endpoint to your routes
+router.get('/exams/date/:date', async (req, res) => {
+  try {
+    const date = new Date(req.params.date);
+    date.setHours(0, 0, 0, 0);
+    
+    const exams = await Exam.find({
+      examDate: date,
+      archiveExam: false
+    }).sort({ examTime: 1 });
+
+    res.json(exams);
+  } catch (err) {
+    console.error('Error fetching exams by date:', err);
+    res.status(500).json({ error: 'Failed to fetch exams by date' });
   }
 });
 

@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, Outlet } from 'react-router-dom';
 import Logo from './images/Logo.jpg';
 import './App.css';
 import AboutUs from './AboutUs';
@@ -16,6 +16,26 @@ import ResetPassword from './ResetPassword';
 import Settings from './Settings';
 import TwoFactorAuth from './TwoFactorAuth';
 
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      // You might want to validate the token with your backend here
+      setIsAuthenticated(true);
+    }
+    setIsLoading(false);
+  }, []);
+
+  if (isLoading) {
+    return <div className="loading">Loading...</div>;
+  }
+
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
 
 function App() {
   useEffect(() => {
@@ -98,32 +118,21 @@ function App() {
                 <DiveInto />
               </div>
             } />
-            {/* Add the Dashboard route */}
-            <Route path="/dashboard" element={
-              <div className="main-content">
-                <Dashboard />
-              </div>
-            } />
-            <Route path="/addexam1" element={
-              <div className="main-content">
-                <AddExam1 />
-              </div>
-            } />
-            <Route path="/addexam2" element={
-              <div className="main-content">
-                <AddExam2 />
-              </div>
-            } />
-            <Route path="/ManageExam" element={
-              <div className="main-content">
-                <ManageExams />
-              </div>
-            } />
-            <Route path="/ManageStudents" element={
-              <div className="main-content">
-                <ManageStudents />
-              </div>
-            } />
+            {/* Protected Routes */}
+            <Route element={
+              <ProtectedRoute>
+                <div className="main-content">
+                  <Outlet />
+                </div>
+              </ProtectedRoute>
+            }>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/addexam1" element={<AddExam1 />} />
+              <Route path="/addexam2" element={<AddExam2 />} />
+              <Route path="/ManageExam" element={<ManageExams />} />
+              <Route path="/ManageStudents" element={<ManageStudents />} />
+              <Route path="/settings" element={<Settings />} />
+            </Route>
             <Route path="/ForgetPassword" element={
               <div className="main-content">
                 <ForgetPassword />
@@ -132,11 +141,6 @@ function App() {
             <Route path="/ResetPassword" element={
               <div className="main-content">
                 <ResetPassword />
-              </div>
-            } />
-            <Route path="/settings" element={
-              <div className="main-content">
-                <Settings />
               </div>
             } />
             <Route path="/two-factor-auth" element={

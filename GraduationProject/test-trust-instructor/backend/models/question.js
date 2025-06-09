@@ -31,9 +31,7 @@ const questionSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  answer: {
-    type: mongoose.Schema.Types.Mixed
-  }
+
 }, { timestamps: true });
 
-module.exports = mongoose.model('Question', questionSchema);
+module.exports = mongoose.model('Question', questionSchema, 'questions');

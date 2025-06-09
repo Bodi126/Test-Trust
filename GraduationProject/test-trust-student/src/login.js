@@ -6,6 +6,7 @@ import SignUp from './signup';
 import Logo from './logo.svg';
 import HomePage from './App';
 import UpcomingExams from './UpcomingExams';
+import { useNavigate } from 'react-router-dom';
 
 const Navbar2 = () => {
   return (
@@ -46,15 +47,39 @@ function login2() {
 
 
 const Login = () => {
-  const [studentCode, setStudentCode] = useState('');
+  const [studentName, setStudentName] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Handle login logic here
-    console.log({ studentCode, password, rememberMe });
-  };
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const res = await fetch('http://localhost:5000/auth_stu/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fullName: studentName, 
+        nationalId: password   
+      })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      alert('Login successful');
+      localStorage.setItem('studentName', data.student.fullName); 
+      window.location.href = '/'; 
+    } else {
+      alert(data.message || 'User does not exist');
+    }
+  } catch (error) {
+    console.error(error);
+    alert('Something went wrong');
+  }
+};
+
   
   return (
 
@@ -66,12 +91,12 @@ const Login = () => {
           <h2>Student Login</h2>
           
           <div className="form-group">
-            <label htmlFor="studentCode">Student Code</label>
+            <label htmlFor="studentName">Student Name</label>
             <input
               type="text"
-              id="studentCode"
-              value={studentCode}
-              onChange={(e) => setStudentCode(e.target.value)}
+              id="studentName"
+              value={studentName}
+              onChange={(e) => setStudentName(e.target.value)}
               required
             />
           </div>

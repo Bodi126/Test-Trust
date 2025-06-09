@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route,Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './App.css';
 import Login from './login';
 import SignUp from './signup';
@@ -11,32 +12,40 @@ import SignupPage from './SignupPage';
 
 // Navbar Component
 const Navbar = () => {
+  const studentName = localStorage.getItem('studentName');
+
+  const handleLogout = () => {
+    localStorage.removeItem('studentName');
+    window.location.href = '/'; 
+  };
+
   return (
     <nav className="navbar">
       <div className="nav-left">
-
         <Link to="/" className="nav-link">Home</Link>
         <Link to="/dive-into" className="nav-link">Dive Into</Link>
         <Link to="/about-us" className="nav-link">About Us</Link>
-
-
-        {/* <a href="/" className="nav-link">Home</a>
-        <a href="#dive-into" className="nav-link">Dive Into</a>
-        <a href="#about-us" className="nav-link">About Us</a> */}
-        {/* <Link to="/about-us" className="AboutUs">About Us</Link> */}
       </div>
+
       <img src={Logo.svg} alt="App Logo" className="logo" />
+
       <div className="nav-right">
-        
-        <div className="auth-buttons">
-          
-          <a href="/login" className="btn login-btn">Login</a>
-          <a href="/signup" className="btn signup-btn">Sign Up</a>
-        </div>
+        {studentName ? (
+          <div className="auth-logged">
+            <span className="student-name">👋 {studentName}</span>
+            <button className="btn logout-btn" onClick={handleLogout}>Logout</button>
+          </div>
+        ) : (
+          <div className="auth-buttons">
+            <Link to="/login" className="btn login-btn">Login</Link>
+            <Link to="/signup" className="btn signup-btn">Sign Up</Link>
+          </div>
+        )}
       </div>
     </nav>
   );
 };
+
 
 // Main App Component with Home Page
 function App() {

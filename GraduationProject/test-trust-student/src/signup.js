@@ -79,7 +79,7 @@ const SignUp = () => {
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                required
+                
               />
             </div>
             
@@ -91,7 +91,7 @@ const SignUp = () => {
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                required
+                
               />
             </div>
           </div>
@@ -105,7 +105,7 @@ const SignUp = () => {
                 name="codeId"
                 value={formData.codeId}
                 onChange={handleChange}
-                required
+                
               />
             </div>
             
@@ -117,7 +117,7 @@ const SignUp = () => {
                 name="academicYear"
                 value={formData.academicYear}
                 onChange={handleChange}
-                required
+                
               />
             </div>
           </div>
@@ -130,7 +130,7 @@ const SignUp = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              required
+              
             />
           </div>
           
@@ -142,7 +142,7 @@ const SignUp = () => {
               name="confirmEmail"
               value={formData.confirmEmail}
               onChange={handleChange}
-              required
+              
             />
           </div>
           

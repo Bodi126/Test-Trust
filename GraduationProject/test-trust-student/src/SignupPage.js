@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import './SignupPage.css';
 import Logo from './logo.svg';
+import { useNavigate } from 'react-router-dom';
 // import Logo from './path-to-your-logo.svg';
 
 const SignupPage = () => {
@@ -100,13 +101,37 @@ const SignupPage = () => {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (validateForm()) {
-      console.log('Form submitted:', formData);
-      // Submit to backend/Electron main process
+ const navigate = useNavigate(); 
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (validateForm()) {
+    try {
+      const payload = {
+        ...formData,
+        idPhoto: previewImage
+      };
+
+      const res = await fetch('http://localhost:5000/auth_stu/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert('Student registered successfully!');
+        navigate('/login'); 
+      } else {
+        alert(data.message || 'Registration failed');
+      }
+
+    } catch (error) {
+      console.error(error);
+      alert('Something went wrong');
     }
-  };
+  }
+};
 
   const triggerFileInput = () => {
     fileInputRef.current.click();

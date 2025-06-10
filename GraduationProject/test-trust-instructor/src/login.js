@@ -45,7 +45,7 @@ function Login() {
     if (Object.keys(validationErrors).length === 0) {
       try {
         console.log('Attempting login with:', values.email);
-        const response = await axios.post('http://localhost:5000/auth/login', values);
+        const response = await axios.post('http://localhost:5000/api/auth/login', values);
         const { user, token } = response.data;
         
         console.log('Login successful, user:', user);

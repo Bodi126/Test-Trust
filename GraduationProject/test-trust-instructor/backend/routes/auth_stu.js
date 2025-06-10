@@ -36,12 +36,16 @@ router.post('/login', async (req, res) => {
     const { fullName, nationalId } = req.body;
     console.log('Login Attempt:', { fullName, nationalId });
 
-    const student = await Student.findOne({ fullName, nationalId });
+    const student = await Student.findOne({ fullName: fullName.trim() });
 
     if (!student) {
       return res.status(404).json({ message: "User doesn't exist" });
     }
-    
+
+    if (student.nationalId !== nationalId) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
     console.log('Student found:', student);
     res.status(200).json({ message: 'Login successful', student });
   } catch (err) {
@@ -49,7 +53,5 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
-
 
 module.exports = router;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './signup.css';
-import Logo from './logo.svg';
+import Logo from './images/Logo.jpg';
 import App from './App';
 import Login from './login';
 import HomePage from './App';

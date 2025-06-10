@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import './SignupPage.css';
-import Logo from './logo.svg';
+import Logo from './images/Logo.jpg';
 import { useNavigate } from 'react-router-dom';
 // import Logo from './path-to-your-logo.svg';
 

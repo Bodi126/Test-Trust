@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import App from './App';
 import Login from './login';
 import SignUp from './signup';
-import Logo from './logo.svg';
+import Logo from './images/Logo.jpg';
 import HomePage from './App';
 
 
@@ -15,7 +15,7 @@ const Navbar4 = () => {
         <a href="#dive-into" className="nav-link">Dive Into</a>
         <a href="#about-us" className="nav-link">About Us</a>
       </div>
-      <img src={Logo.svg} alt="App Logo" className="logo" />
+      <img src={Logo} alt="App Logo" className="logo" />
       <div className="nav-right">
         
         <div className="auth-buttons">

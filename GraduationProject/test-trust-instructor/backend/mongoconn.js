@@ -2,17 +2,65 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const express = require('express');
 const cors = require("cors");
+const http = require('http');
+const { Server } = require('socket.io');
+
 const authRoutes = require("./routes/auth");
 const instructorRoutes = require("./routes/instructors");
+const authstuRouts = require("./routes/auth_stu");
 const examRoutes = require("./routes/exams");
 
 const app = express();
+const server = http.createServer(app); // Use this instead of app.listen directly
+
+// Socket.IO setup
+const io = new Server(server, {
+    cors: {
+        origin: 'http://localhost:3000',
+        methods: ['GET', 'POST']
+    }
+});
+
+const connectedStudents = {};
+
+// Handle socket connections
+io.on('connection', (socket) => {
+    console.log("User connected:", socket.id);
+
+    socket.on('student_join', (studentId) => {
+        connectedStudents[studentId] = socket.id;
+        console.log(`Student ${studentId} connected with socket ${socket.id}`);
+    });
+
+    socket.on('start_exam', () => {
+        io.emit('start_exam'); // broadcast to all students
+        console.log('Exam started');
+    });
+
+    socket.on('end_exam_for_student', (studentId) => {
+        const socketId = connectedStudents[studentId];
+        if (socketId) {
+            io.to(socketId).emit('end_exam');
+            console.log(`Ended exam for student ${studentId}`);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log("User disconnected:", socket.id);
+        for (let id in connectedStudents) {
+            if (connectedStudents[id] === socket.id) {
+                delete connectedStudents[id];
+                break;
+            }
+        }
+    });
+});
+
 
 // CORS configuration
-const allowedOrigins = ['http://localhost:3000'];
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
 app.use(cors({
-    origin: function(origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
+    origin: function (origin, callback) {
         if (!origin) return callback(null, true);
         if (allowedOrigins.indexOf(origin) === -1) {
             const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
@@ -25,11 +73,11 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Pre-flight requests
+
 app.options('*', cors());
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/testtrust', {
     useNewUrlParser: true,
@@ -45,12 +93,13 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/testtrust
 app.use('/api/auth', authRoutes);
 app.use('/api/instructors', instructorRoutes);
 app.use('/api/exams', examRoutes);
+app.use('/api/auth_stu', authstuRouts);
 
-// Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date() });
 });
 
-app.listen(5000, () => {
-    console.log("App is running on port 5000");
+// Run the server with Socket.IO
+server.listen(5000, () => {
+    console.log("Server is running on port 5000");
 });

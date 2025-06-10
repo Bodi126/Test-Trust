@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './PracticeTests.css';
 import App from './App';
 import SignUp from './signup';
-import Logo from './logo.svg';
+import Logo from './images/Logo.jpg';
 import HomePage from './App';
 import UpcomingExams from './UpcomingExams';
 import AboutUs from './AboutUs';

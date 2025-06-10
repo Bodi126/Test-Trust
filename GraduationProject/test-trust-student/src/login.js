@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './login.css';
 import App from './App';
 import SignUp from './signup';
-import Logo from './logo.svg';
+import Logo from './images/Logo.jpg';
 import HomePage from './App';
 import UpcomingExams from './UpcomingExams';
 import { useNavigate } from 'react-router-dom';
@@ -60,7 +60,7 @@ const Login = () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        fullName: studentName, 
+        fullName: studentName.trim(), 
         nationalId: password   
       })
     });

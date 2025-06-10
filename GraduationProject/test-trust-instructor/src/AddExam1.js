@@ -85,7 +85,7 @@ const AddExam1 = () => {
         createdBy: userEmail // Set the creator from localStorage
       };
 
-      const response = await axios.post('http://localhost:5000/auth/AddExam1', examData);
+      const response = await axios.post('http://localhost:5000/api/auth/AddExam1', examData);
       
       navigate('/AddExam2', { 
         state: { 

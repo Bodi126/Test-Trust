@@ -1,6 +1,7 @@
 import './Dashboard.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLocation } from "react-router-dom";
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import axios from 'axios';
@@ -10,35 +11,44 @@ function Dashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('current');
   const [allExams, setAllExams] = useState([]);
+  const [examData, setExamData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tooltip, setTooltip] = useState({ show: false, content: '', x: 0, y: 0 });
 
   useEffect(() => {
-    const fetchExams = async () => {
-      try {
-        setLoading(true);
-        const userEmail = localStorage.getItem('userEmail');
-        if (!userEmail) {
-          setError('User not logged in');
-          setLoading(false);
-          return;
-        }
-        const response = await axios.get(
-          `http://localhost:5000/auth/my-exams?user=${encodeURIComponent(userEmail)}`,
-          { withCredentials: true }
-        );
-        setAllExams(response.data.exams || []);
-      } catch (err) {
-        console.error('Error fetching exams:', err);
-        setError(err.response?.data?.message || 'Failed to load exams');
-      } finally {
+  const fetchExams = async () => {
+    try {
+      setLoading(true);
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail) {
+        setError('User not logged in');
         setLoading(false);
+        return;
       }
-    };
+      const response = await axios.get(
+        `http://localhost:5000/api/auth/my-exams?user=${encodeURIComponent(userEmail)}`,
+        { withCredentials: true }
+      );
+      const exams = response.data.exams || [];
+      setAllExams(exams);
 
-    fetchExams();
-  }, []);
+      const today = normalizeDate(new Date());
+      const todayExam = exams.find(exam => normalizeDate(exam.examDate).getTime() === today.getTime());
+      if (todayExam) {
+        setExamData(todayExam);
+      }
+    } catch (err) {
+      console.error('Error fetching exams:', err);
+      setError(err.response?.data?.message || 'Failed to load exams');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchExams();
+}, []);
+
 
   // Helper function to normalize dates for comparison
   const normalizeDate = (date) => {
@@ -46,6 +56,11 @@ function Dashboard() {
     d.setHours(0, 0, 0, 0);
     return d;
   };
+
+  const handleStartExam = () => {
+  navigate(`/start-exam/${examData._id}`);
+};
+
 
   // Filter exams for today
   const getTodaysExams = () => {
@@ -147,6 +162,10 @@ function Dashboard() {
     localStorage.removeItem('userEmail');
     navigate('/');
   };
+
+
+  const location = useLocation();
+const examReady = location.state?.examReady;
 
   // Calendar tile content with exam indicator
   const tileContent = ({ date, view }) => {
@@ -305,8 +324,9 @@ function Dashboard() {
                 ))
               ) : (
                 <div className="no-exams">No exams scheduled for today</div>
-              )}
+          )}
             </div>
+            
           ) : (
             <div className="upcoming-exams">
               {upcomingExams.length > 0 ? (
@@ -326,9 +346,14 @@ function Dashboard() {
               ) : (
                 <div className="no-exams">No upcoming exams in the next 6 days</div>
               )}
+              {examReady && (
+              <button onClick={handleStartExam}>Start</button> )}
             </div>
           )}
+          
         </div>
+
+
 
         <div className="quick-stats">
           <div className="stat-card">

@@ -4,7 +4,7 @@ import './App.css';
 import HomePage from './App';
 import Login from './login';
 import SignUp from './signup';
-import Logo from './logo.svg';
+import Logo from './images/Logo.jpg';
 import AboutUs from './AboutUs';
 import DiveInto from './DiveInto';
 import './UpcomingExams.css';
@@ -18,7 +18,7 @@ const Navbar6 = () => {
         <a href="#dive-into" className="nav-link">Dive Into</a>
         <a href="#about-us" className="nav-link">About Us</a>
       </div>
-      <img src={Logo.svg} alt="App Logo" className="logo" />
+      <img src={Logo} alt="App Logo" className="logo" />
       <div className="nav-right">
         
         <div className="auth-buttons">

@@ -20,6 +20,8 @@ const AddExam2 = () => {
   const [questionText, setQuestionText] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [examReady, setIsexamReady] = useState(false);
+
 
   const autoCorrection = examData?.autoCorrection || false;
 
@@ -90,12 +92,12 @@ const AddExam2 = () => {
       };
 
       const response = await axios.post(
-        'http://localhost:5000/auth/add-questions-and-answers', 
+        'http://localhost:5000/api/auth/add-questions-and-answers', 
         payload
       );
 
       console.log('Questions saved successfully:', response.data);
-      navigate('/dashboard');
+      navigate('/dashboard', { state: { examReady: true }});
     } catch (err) {
       console.error('Error saving questions:', err);
       alert(

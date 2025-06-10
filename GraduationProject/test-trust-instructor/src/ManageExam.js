@@ -53,7 +53,7 @@ const ManageExam = () => {
           setLoading(false);
           return;
         }
-        const response = await fetch(`http://localhost:5000/auth/my-exams?user=${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`http://localhost:5000/api/auth/my-exams?user=${encodeURIComponent(userEmail)}`);
         const data = await response.json();
         if (response.ok) {
           setExams(data.exams || []);

@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocation } from "react-router-dom";
 import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
 import axios from 'axios';
 import { format } from 'date-fns';
 
@@ -15,36 +14,54 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tooltip, setTooltip] = useState({ show: false, content: '', x: 0, y: 0 });
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [examReady, setExamReady] = useState(false);
+
+  // Handle date change in the calendar
+  const handleDateChange = (date) => {
+    setSelectedDate(date);
+  };
+
+  // Handle month/year navigation
+  const handleActiveStartDateChange = ({ activeStartDate }) => {
+    // You can add logic here if you need to handle month/year changes
+    console.log('View changed to:', activeStartDate);
+  };
 
   useEffect(() => {
-  const fetchExams = async () => {
-    try {
-      setLoading(true);
-      const userEmail = localStorage.getItem('userEmail');
-      if (!userEmail) {
-        setError('User not logged in');
+    const fetchExams = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const userEmail = localStorage.getItem('userEmail');
+        if (!userEmail) {
+          throw new Error('User not logged in');
+        }
+        
+        console.log('Fetching exams for user:', userEmail);
+        const response = await axios.get(
+          `http://localhost:5000/api/auth/my-exams?user=${encodeURIComponent(userEmail)}`,
+          { 
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+        
+        console.log('Exams data received:', response.data);
+        if (response.data && Array.isArray(response.data.exams)) {
+          setAllExams(response.data.exams);
+        } else {
+          console.error('Unexpected response format:', response.data);
+          setError('Invalid response format from server');
+        }
+      } catch (err) {
+        console.error('Error fetching exams:', err);
+        setError(err.response?.data?.message || err.message || 'Failed to load exams');
+      } finally {
         setLoading(false);
-        return;
       }
-      const response = await axios.get(
-        `http://localhost:5000/api/auth/my-exams?user=${encodeURIComponent(userEmail)}`,
-        { withCredentials: true }
-      );
-      const exams = response.data.exams || [];
-      setAllExams(exams);
-
-      const today = normalizeDate(new Date());
-      const todayExam = exams.find(exam => normalizeDate(exam.examDate).getTime() === today.getTime());
-      if (todayExam) {
-        setExamData(todayExam);
-      }
-    } catch (err) {
-      console.error('Error fetching exams:', err);
-      setError(err.response?.data?.message || 'Failed to load exams');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   fetchExams();
 }, []);
@@ -57,8 +74,10 @@ function Dashboard() {
     return d;
   };
 
-  const handleStartExam = () => {
-  navigate(`/start-exam/${examData._id}`);
+  const handleStartExam = (exam) => {
+  setExamData(exam);
+  setExamReady(true);
+  navigate(`/start-exam/${exam._id}`);
 };
 
 
@@ -158,22 +177,22 @@ function Dashboard() {
   const handleManageExams = () => navigate('/ManageExam');
   const handleResults = () => navigate('/results');
   const handleSettings = () => navigate('/settings');
-  const handleLogout = () => {
-    localStorage.removeItem('userEmail');
-    navigate('/');
-  };
 
 
-  const location = useLocation();
-const examReady = location.state?.examReady;
-
-  // Calendar tile content with exam indicator
+  // Calendar tile content - handles both day numbers and exam indicators
   const tileContent = ({ date, view }) => {
     if (view !== 'month') return null;
-    const hasExams = dateHasExams(date);
-    const isToday = normalizeDate(date).getTime() === normalizeDate(new Date()).getTime();
-    const exams = getExamsForDate(date);
     
+    const hasExams = dateHasExams(date);
+    const exams = allExams.filter(exam => {
+      const examDate = new Date(exam.examDate);
+      return examDate.toDateString() === date.toDateString();
+    });
+    const today = new Date();
+    const isToday = date.getDate() === today.getDate() && 
+                   date.getMonth() === today.getMonth() && 
+                   date.getFullYear() === today.getFullYear();
+
     return (
       <div 
         className="calendar-day-wrapper"
@@ -181,6 +200,7 @@ const examReady = location.state?.examReady;
         onMouseLeave={handleDateLeave}
       >
         <div className={`calendar-day ${hasExams ? 'has-exam' : ''} ${isToday ? 'today' : ''}`}>
+          <div className="day-number">{date.getDate()}</div>
           {hasExams && (
             <div className="exam-date-marker" data-exam-count={exams.length}>
               {exams.length > 1 && <span className="exam-count">{exams.length}</span>}
@@ -211,11 +231,6 @@ const examReady = location.state?.examReady;
     }
     
     return classes.join(' ');
-  };
-
-  // Format day of month for calendar
-  const formatDay = (locale, date) => {
-    return date.getDate().toString();
   };
 
   // Format short week day names
@@ -271,12 +286,13 @@ const examReady = location.state?.examReady;
           </button>
           <button className="nav-button" onClick={handleSettings}>
             <i className="fas fa-cog"></i>
-            <span>Settings</span>
+            <span>Profile</span>
           </button>
-          <button className="sidebar-back-button" onClick={handleLogout}>
-            <i className="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
+          <button className="nav-button" onClick={() => navigate('/manageStudents')}>
+            <i className="fas fa-users"></i>
+            <span>Manage Students</span>
           </button>
+
         </div>
       </div>
 
@@ -318,8 +334,12 @@ const examReady = location.state?.examReady;
                     </div>
                     <div className="exam-meta">
                       <span>{exam.department} - {exam.year}</span>
-                        {examReady && (
-              <button className="nav-button" onClick={handleStartExam}><span>Start</span></button> )}
+                        <button 
+                          className="nav-button" 
+                          onClick={() => handleStartExam(exam)}
+                        >
+                          <span>Start</span>
+                        </button>
                       <span>{formatTime(exam.examTime)}</span>
                     </div>
                   </div>
@@ -372,22 +392,15 @@ const examReady = location.state?.examReady;
       <div className="dashboard-calendar">
         <div className="calendar-container">
           <Calendar
-            className="modern-calendar"
-            value={new Date()}
-            tileContent={tileContent}
+            onChange={handleDateChange}
+            value={selectedDate}
+            className="dashboard-calendar"
             tileClassName={tileClassName}
-            formatDay={formatDay}
+            tileContent={tileContent}
             formatShortWeekday={formatShortWeekday}
-            onActiveStartDateChange={({ activeStartDate }) => {
-              // Update view when month changes
-              console.log('View changed to:', activeStartDate);
-            }}
-            onClickDay={(date) => {
-              const exams = getExamsForDate(date);
-              if (exams.length > 0) {
-                console.log('Exams on', date.toDateString(), ':', exams);
-              }
-            }}
+            calendarType="gregory"
+            locale="en-US"
+            onActiveStartDateChange={handleActiveStartDateChange}
             onMouseLeave={handleDateLeave}
           />
           

@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './ForgetPassword.css';
 import Logo from './images/Logo.jpg';
+
+// Base URL for API requests
+const API_BASE_URL = 'http://localhost:5000/api/auth';
 
 function ForgotPassword() {
   const navigate = useNavigate();
@@ -9,23 +13,112 @@ function ForgotPassword() {
   const [step, setStep] = useState(1);
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [debugOtp, setDebugOtp] = useState(''); // For development/testing only
 
   const handleSubmitEmail = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    setStep(2);
+    if (!email) {
+      alert('Please enter your email address');
+      return;
+    }
+    
+    try {
+      console.log('Sending forgot password request for email:', email);
+      setIsLoading(true);
+      
+      const requestData = { 
+        email: email.trim().toLowerCase() 
+      };
+      
+      console.log('Request data:', requestData);
+      
+      const response = await axios({
+        method: 'post',
+        url: `${API_BASE_URL}/forgot-password`,
+        data: requestData,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        withCredentials: true,
+        timeout: 10000 // 10 second timeout
+      });
+      
+      console.log('Forgot password response:', response.data);
+      
+      if (response.data && response.data.success === false) {
+        throw new Error(response.data.message || 'Failed to process request');
+      }
+      
+      // Show success message and move to OTP step
+      const message = response.data?.message || 'If your email exists in our system, you will receive an OTP';
+      
+      // In development, show OTP in the UI for testing
+      if (process.env.NODE_ENV === 'development' && response.data?.otp) {
+        setDebugOtp(response.data.otp);
+      }
+      
+      alert(message);
+      setStep(2);
+    } catch (error) {
+      console.error('Error in handleSubmitEmail:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        code: error.code
+      });
+      
+      let errorMessage = 'Failed to process forgot password request';
+      
+      if (error.response) {
+        // Server responded with an error status code
+        errorMessage = error.response.data?.message || errorMessage;
+      } else if (error.request) {
+        // Request was made but no response received
+        errorMessage = 'No response from server. Please check your connection.';
+      } else {
+        // Something happened in setting up the request
+        errorMessage = error.message || errorMessage;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    // Simulate API verification
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    navigate('/ResetPassword', { state: { email } });
+    if (!otp || otp.length !== 6) {
+      alert('Please enter a valid 6-digit OTP');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await axios.post(`${API_BASE_URL}/verify-reset-otp`, { 
+        email, 
+        otp 
+      });
+      
+      if (response.data.token) {
+        // Navigate to reset password page with email and token
+        navigate('/ResetPassword', { 
+          state: { 
+            email,
+            token: response.data.token
+          } 
+        });
+      } else {
+        alert('Failed to verify OTP. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to verify OTP. Please try again.';
+      alert(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -71,7 +164,19 @@ function ForgotPassword() {
         ) : (
           <form className="auth-form" onSubmit={handleVerifyOtp}>
             <p className="otp-instructions">
-              We've sent a 6-digit code to {email}
+              Enter the 6-digit code sent to your email
+              {debugOtp && (
+                <div style={{
+                  marginTop: '10px',
+                  padding: '10px',
+                  backgroundColor: '#f0f0f0',
+                  borderRadius: '4px',
+                  textAlign: 'center',
+                  fontWeight: 'bold'
+                }}>
+                  TEST MODE - OTP: {debugOtp}
+                </div>
+              )}
             </p>
             <div className="input-group">
               <label htmlFor="otp">Verification Code</label>
@@ -81,8 +186,12 @@ function ForgotPassword() {
                 placeholder="Enter 6-digit code"
                 className="auth-input"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                maxLength="6"
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, ''); // Allow only numbers
+                  setOtp(value.slice(0, 6)); // Limit to 6 digits
+                }}
+                inputMode="numeric"
+                pattern="\d{6}"
                 required
               />
             </div>

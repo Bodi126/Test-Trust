@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, Outlet } from 'react-router-dom';
+import { useEffect, useState, useContext } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { AuthContext } from './contexts/AuthContext';
+import AuthLink from './components/AuthLink';
 import Logo from './images/Logo.jpg';
 import './App.css';
 import AboutUs from './AboutUs';
@@ -38,6 +40,7 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
+  const { currentUser } = useContext(AuthContext);
   useEffect(() => {
     const shapes = document.querySelectorAll('.shape');
     
@@ -55,29 +58,71 @@ function App() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+
+
   return (
- 
-      <Router>
-        <div className="App">
-          <nav className='app-navbar'>
-            <div className="navbar-brand">
-              <Link to="/">  {/* This will navigate to the home route */}
-                <img src={Logo} className="app-logo" alt="TestTrust Logo" />
-              </Link>
-            </div>  
-            
-            <ul className='nav-menu'>
-              <li className="nav-item">
-                <Link to="/dive-into" className="nav-link">Dive Into</Link>
-              </li>
-              <li className="nav-item">
-                <Link to="/about-us" className="nav-link">About Us</Link>
-              </li>
-              <li className="nav-item">
-                <Link to="/signup" className="nav-link">Join Us</Link>
-              </li>
-            </ul>        
-          </nav>
+    <Router>
+      <div className="App">
+        <nav className='app-navbar'>
+          <div className="navbar-brand">
+            <Link to="/">
+              <img src={Logo} className="app-logo" alt="TestTrust Logo" />
+            </Link>
+          </div>  
+          
+          <ul className='nav-menu'>
+            <li className="nav-item">
+              <Link to="/dive-into" className="nav-link">Dive Into</Link>
+            </li>
+            <li className="nav-item">
+              <Link to="/about-us" className="nav-link">About Us</Link>
+            </li>
+            <li className="nav-item">
+              {currentUser ? (
+                <li className="nav-item">
+                  <Link to="/settings" className="nav-link" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '5px 0',
+                    borderRadius: '50%',
+                    transition: 'all 0.3s ease',
+                    position: 'relative'
+                  }}>
+                    <div className="avatar-glow" style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'radial-gradient(circle, rgba(110,72,170,0.4) 0%, rgba(110,72,170,0.1) 70%)',
+                      padding: '2px'
+                    }}>
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        backgroundColor: '#6e48aa',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '16px',
+                        fontWeight: 'bold'
+                      }}>
+                        {currentUser.firstName ? currentUser.firstName.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                    </div>
+                  </Link>
+                </li>
+              ) : (
+                <li className="nav-item">
+                  <AuthLink to="/signup" className="nav-link">Join Us</AuthLink>
+                </li>
+              )}
+            </li>
+          </ul>        
+        </nav>
 
           <Routes>
             <Route path="/" element={
@@ -94,7 +139,7 @@ function App() {
                     <li>Monitor live exams in real-time</li>
                     <li>Contribute to our open-source platform</li>
                   </ul>
-                  <Link to="/login" className="cta-button">Get Started Now</Link>
+                  <AuthLink to="/login" className="cta-button">Get Started Now</AuthLink>
                 </div>
               </div>
             } />

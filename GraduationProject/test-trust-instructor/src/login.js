@@ -1,7 +1,8 @@
 import './login.css';
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useContext } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { AuthContext } from './contexts/AuthContext';
 import Logo from './images/Logo.jpg';
 
 function valid(values) {
@@ -30,7 +31,10 @@ function Login() {
   const [errors, setErrors] = useState({});
 
   const [loginError, setLoginError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useContext(AuthContext);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -39,38 +43,69 @@ function Login() {
 
   async function validation(event) {
     event.preventDefault();
+    setLoginError('');
     const validationErrors = valid(values);
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length === 0) {
+      setIsLoading(true);
       try {
-        console.log('Attempting login with:', values.email);
-        const response = await axios.post('http://localhost:5000/api/auth/login', values);
-        const { user, token } = response.data;
+        console.log('[FRONTEND] Attempting login with email:', values.email);
+        const response = await axios.post('http://localhost:5000/api/auth/login', {
+          email: values.email.trim(),
+          password: values.password
+        });
         
-        console.log('Login successful, user:', user);
-        console.log('Token received:', token ? 'Token received' : 'No token');
+        console.log('[FRONTEND] Login response:', response.data);
         
-        if (user.twoFactorEnabled) {
-          console.log('2FA enabled, redirecting to 2FA page');
-          localStorage.setItem('pendingUser', JSON.stringify(user));
-          localStorage.setItem('pendingToken', token);
-          localStorage.setItem('userEmail', user.email);
-          navigate(`/two-factor-auth?email=${encodeURIComponent(user.email)}`);
-        } else {
-          console.log('Regular login, storing token and redirecting');
-          localStorage.setItem('user', JSON.stringify(user));
-          localStorage.setItem('token', token);
-          localStorage.setItem('userEmail', user.email);
+        if (response.data.require2FA) {
+          // Handle 2FA case
+          console.log('[FRONTEND] 2FA required for user:', values.email);
+          // Navigate to 2FA page with email in state
+          navigate('/two-factor-auth', { 
+            state: { email: values.email },
+            replace: true 
+          });
+        } else if (response.data.token) {
+          // Handle successful login without 2FA
+          const { user, token } = response.data;
+          console.log('[FRONTEND] Login successful for user:', user.email);
           
-          // Force a page reload to ensure all components get the new auth state
-          window.location.href = '/dashboard';
+          // Use the login function from AuthContext
+          login(user, token);
+          
+          // Clear any pending 2FA state
+          localStorage.removeItem('pendingUser');
+          localStorage.removeItem('pendingToken');
+          
+          // Redirect to the intended page or dashboard
+          const from = location.state?.from?.pathname || '/dashboard';
+          navigate(from, { replace: true });
+        } else {
+          // Handle unexpected response
+          console.error('[FRONTEND] Unexpected response format:', response.data);
+          setLoginError('Invalid server response. Please try again.');
         }
       } catch (error) {
-        console.error('Login error:', error);
-        const errorMessage = error.response?.data?.message || 'Invalid credentials';
-        console.log('Login failed:', errorMessage);
+        console.error('[FRONTEND] Login error:', error);
+        const errorMessage = error.response?.data?.message || 
+                           error.message || 
+                           'Failed to connect to the server. Please check your connection.';
+        console.log('[FRONTEND] Login failed:', errorMessage);
         setLoginError(errorMessage);
+        
+        // Log the full error for debugging
+        if (error.response) {
+          console.error('[FRONTEND] Error response data:', error.response.data);
+          console.error('[FRONTEND] Error status:', error.response.status);
+          console.error('[FRONTEND] Error headers:', error.response.headers);
+        } else if (error.request) {
+          console.error('[FRONTEND] No response received:', error.request);
+        } else {
+          console.error('[FRONTEND] Error message:', error.message);
+        }
+      } finally {
+        setIsLoading(false);
       }
     }
   }
@@ -128,7 +163,13 @@ function Login() {
             </span>
           </div>
 
-          <button type="submit" className="auth-button">Login</button>
+          <button 
+            type="submit" 
+            className="login-button"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Logging in...' : 'Login'}
+          </button>
         </form>
 
         {loginError && <p style={{ color: 'red', marginTop: '10px' }}>{loginError}</p>}

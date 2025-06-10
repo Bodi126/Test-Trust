@@ -1,9 +1,10 @@
-require('dotenv').config();
+require('dotenv').config({ path: __dirname + '/.env' });
 const mongoose = require('mongoose');
 const express = require('express');
 const cors = require("cors");
 const http = require('http');
 const { Server } = require('socket.io');
+const bodyParser = require('body-parser');
 
 const authRoutes = require("./routes/auth");
 const instructorRoutes = require("./routes/instructors");
@@ -11,6 +12,23 @@ const authstuRouts = require("./routes/auth_stu");
 const examRoutes = require("./routes/exams");
 
 const app = express();
+
+// Middleware - Must be before routes
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Body parser middleware - must be before routes
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Remove body-parser as we're using express's built-in
+// app.use(bodyParser.json());
+// app.use(bodyParser.urlencoded({ extended: true }));
+
 const server = http.createServer(app); // Use this instead of app.listen directly
 
 // Socket.IO setup

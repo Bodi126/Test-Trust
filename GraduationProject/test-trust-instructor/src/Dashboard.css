@@ -863,6 +863,301 @@ html, body, #root, .App {
   to { transform: rotate(360deg); }
 }
 
+/* Modern Calendar Styles */
+.dashboard-calendar {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.5rem;
+  background: linear-gradient(145deg, #ffffff, #f5f7fa);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.dashboard-calendar:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+/* Calendar Navigation */
+.react-calendar__navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.react-calendar__navigation button {
+  background: none;
+  border: none;
+  color: #2c3e50;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.react-calendar__navigation button:enabled:hover,
+.react-calendar__navigation button:enabled:focus {
+  background: rgba(52, 152, 219, 0.1);
+  color: #3498db;
+}
+
+.react-calendar__navigation button[disabled] {
+  background: transparent;
+  color: #bdc3c7;
+}
+
+/* Calendar Month/Year Label */
+.react-calendar__navigation__label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2c3e50;
+  pointer-events: none;
+}
+
+/* Weekday Headers */
+.react-calendar__month-view__weekdays {
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: #7f8c8d;
+  margin-bottom: 0.5rem;
+}
+
+.react-calendar__month-view__weekdays__weekday abbr {
+  text-decoration: none;
+  padding: 0.5rem;
+  display: block;
+}
+
+/* Calendar Days */
+.react-calendar__month-view__days {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+}
+
+.react-calendar__tile {
+  aspect-ratio: 1;
+  max-width: 100% !important;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2c3e50;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Hide default day numbers */
+.react-calendar__tile abbr {
+  display: none !important;
+}
+
+/* Calendar day wrapper */
+.calendar-day-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.calendar-day {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.day-number {
+  font-size: 1rem;
+  font-weight: 500;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* Exam marker styling */
+.exam-date-marker {
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 4px;
+}
+
+.exam-date-marker::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  background: #e74c3c;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.exam-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #e74c3c;
+  color: white;
+  font-size: 0.6rem;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+}
+
+/* Hover State */
+.react-calendar__tile:enabled:hover {
+  background: rgba(52, 152, 219, 0.1);
+  transform: scale(1.05);
+}
+
+/* Current Day */
+.react-calendar__tile--now {
+  background: linear-gradient(135deg, #3498db, #2ecc71);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+/* Active/Selected Day */
+.react-calendar__tile--active,
+.react-calendar__tile--active:enabled:hover,
+.react-calendar__tile--active:enabled:focus {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+}
+
+/* Days with Exams */
+.react-calendar__tile--has-exam {
+  position: relative;
+  color: #e74c3c;
+  font-weight: 700;
+}
+
+.react-calendar__tile--has-exam::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  background: #e74c3c;
+  border-radius: 50%;
+}
+
+/* Neighboring Month Days */
+.react-calendar__month-view__days__day--neighboringMonth {
+  color: #bdc3c7;
+}
+
+/* Tooltip Styling */
+.calendar-tooltip {
+  position: fixed;
+  background: white;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-width: 250px;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border: 1px solid #ecf0f1;
+}
+
+.calendar-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 10px 10px 0;
+  border-style: solid;
+  border-color: white transparent transparent;
+}
+
+.tooltip-date {
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.exams-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.exam-detail {
+  background: #f8f9fa;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border-left: 3px solid #3498db;
+}
+
+.exam-subject {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.25rem;
+}
+
+.exam-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .dashboard-calendar {
+    max-width: 100%;
+    padding: 1rem;
+  }
+  
+  .react-calendar__navigation button {
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .react-calendar__tile {
+    padding: 0.25rem;
+    font-size: 0.85rem;
+  }
+}
+
 .error-message {
   color: #e74c3c;
   padding: 15px;

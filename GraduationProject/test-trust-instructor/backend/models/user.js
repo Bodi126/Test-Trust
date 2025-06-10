@@ -9,7 +9,11 @@ const userSchema = new mongoose.Schema({
   password: String,
   twoFactorEnabled: { type: Boolean, default: false },
   twoFactorCode: { type: Number, default: null },
-  twoFactorExpires: { type: Date, default: null }
+  twoFactorExpires: { type: Date, default: null },
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
+  resetPasswordOtp: String,
+  resetOtpExpires: Date
 });
 
 const jwt = require('jsonwebtoken');

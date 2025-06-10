@@ -2,11 +2,12 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 import Login from './login';
-import SignUp from './signup';
+import SignupPage from './SignupPage';
 import Logo from './images/Logo.jpg';
 import AboutUs from './AboutUs';
 import DiveInto from './DiveInto';
-import SignupPage from './SignupPage';
+import UpcomingExams from './UpcomingExams';
+import Exam from './Exam'; 
 
 // Navbar Component
 const Navbar = () => {
@@ -30,8 +31,15 @@ const Navbar = () => {
       <div className="nav-right">
         {studentName && (
           <div className="auth-logged">
-            <span className="student-name">👋 {studentName}</span>
-            <button lassName="btn logout-btn" onClick={handleLogout}>Logout</button>
+            <div style={{ display: 'flex', alignItems: 'center', paddingRight: '20px', gap: '25px' }}>
+              <span className="student-name">👋 {studentName.split(" ").slice(0, 2).join(" ")}</span>
+              <button className="nav-link" onClick={handleLogout}>Logout</button>
+            </div>
+            <div style={{ marginTop: '20px' }}>
+        <Link to="/UpcomingExams" className="btn primary">
+          Upcoming Exams
+        </Link>
+      </div>
           </div>
         )}
       </div>
@@ -42,6 +50,7 @@ const Navbar = () => {
 // Main App Component
 function App() {
   return (
+
     <Router>
       <div className="app">
         <Navbar />
@@ -51,6 +60,8 @@ function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/dive-into" element={<DiveInto />} />
+          <Route path="/UpcomingExams" element={<UpcomingExams />} />
+          <Route path="/Exam" element={<Exam />} /> 
         </Routes>
       </div>
     </Router>

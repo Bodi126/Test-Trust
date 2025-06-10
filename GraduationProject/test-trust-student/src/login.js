@@ -7,6 +7,8 @@ import Logo from './images/Logo.jpg';
 import HomePage from './App';
 import UpcomingExams from './UpcomingExams';
 import { useNavigate } from 'react-router-dom';
+import socket from './socket'; 
+
 
 const Navbar2 = () => {
   return (
@@ -56,7 +58,7 @@ const Login = () => {
   e.preventDefault();
 
   try {
-    const res = await fetch('http://localhost:5000/auth_stu/login', {
+    const res = await fetch('http://localhost:5000/api/auth_stu/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -70,6 +72,8 @@ const Login = () => {
     if (res.ok) {
       alert('Login successful');
       localStorage.setItem('studentName', data.student.fullName); 
+      localStorage.setItem('studentId', data.student._id);
+      socket.emit('student_join', data.student._id);
       window.location.href = '/'; 
     } else {
       alert(data.message || 'User does not exist');

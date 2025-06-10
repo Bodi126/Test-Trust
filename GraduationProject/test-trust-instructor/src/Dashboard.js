@@ -318,6 +318,8 @@ const examReady = location.state?.examReady;
                     </div>
                     <div className="exam-meta">
                       <span>{exam.department} - {exam.year}</span>
+                        {examReady && (
+              <button className="nav-button" onClick={handleStartExam}><span>Start</span></button> )}
                       <span>{formatTime(exam.examTime)}</span>
                     </div>
                   </div>
@@ -346,8 +348,7 @@ const examReady = location.state?.examReady;
               ) : (
                 <div className="no-exams">No upcoming exams in the next 6 days</div>
               )}
-              {examReady && (
-              <button onClick={handleStartExam}>Start</button> )}
+              
             </div>
           )}
           

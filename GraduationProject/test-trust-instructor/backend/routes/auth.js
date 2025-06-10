@@ -327,6 +327,28 @@ router.get('/my-exams', async (req, res) => {
   }
 });
 
+router.get('/alltoday_exams', async (req, res) => {
+  try {
+
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+    const exams = await Exam.find({
+      examDate: {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      },
+    });
+
+    res.status(200).json({ exams });
+  } catch (err) {
+    console.error('Error fetching today\'s exams:', err);
+    res.status(500).json({ message: 'Failed to fetch today\'s exams', error: err.message });
+  }
+});
+
+
 // Get model answers for multiple questions
 router.get('/model-answers/batch', async (req, res) => {
   try {

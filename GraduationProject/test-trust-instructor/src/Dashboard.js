@@ -155,15 +155,25 @@ function Dashboard() {
   // Handle date hover in calendar
   const handleDateHover = (date, event) => {
     const exams = getExamsForDate(date);
-    if (exams.length === 0) return;
+    if (exams.length === 0) {
+      setTooltip(prev => ({ ...prev, show: false }));
+      return;
+    }
     
-    const rect = event.target.closest('.react-calendar__tile').getBoundingClientRect();
+    const tile = event.target.closest('.react-calendar__tile');
+    if (!tile) return;
+    
+    const rect = tile.getBoundingClientRect();
+    
+    // Calculate position for tooltip above the date using viewport coordinates
+    const tooltipX = rect.left + (rect.width / 2);
+    const tooltipY = rect.top - 10; // 10px above the date
     
     setTooltip({
       show: true,
       content: formatExamDetails(exams),
-      x: rect.left + window.scrollX + (rect.width / 2),
-      y: rect.top + window.scrollY - 10,
+      x: tooltipX,
+      y: tooltipY,
       date: date.toDateString()
     });
   };
@@ -188,23 +198,22 @@ function Dashboard() {
       const examDate = new Date(exam.examDate);
       return examDate.toDateString() === date.toDateString();
     });
+
     const today = new Date();
     const isToday = date.getDate() === today.getDate() && 
-                   date.getMonth() === today.getMonth() && 
-                   date.getFullYear() === today.getFullYear();
+                  date.getMonth() === today.getMonth() && 
+                  date.getFullYear() === today.getFullYear();
 
     return (
       <div 
-        className="calendar-day-wrapper"
+        className="calendar-tile-content"
         onMouseEnter={(e) => handleDateHover(date, e)}
         onMouseLeave={handleDateLeave}
       >
-        <div className={`calendar-day ${hasExams ? 'has-exam' : ''} ${isToday ? 'today' : ''}`}>
-          <div className="day-number">{date.getDate()}</div>
+        <div className={`day-number ${isToday ? 'today' : ''}`}>
+          {date.getDate()}
           {hasExams && (
-            <div className="exam-date-marker" data-exam-count={exams.length}>
-              {exams.length > 1 && <span className="exam-count">{exams.length}</span>}
-            </div>
+            <div className="exam-count">{exams.length}</div>
           )}
         </div>
       </div>
@@ -240,30 +249,38 @@ function Dashboard() {
 
   return (
     <div className="dashboard-container">
-{/* Tooltip for exam details */}
-{tooltip.show && (
-  <div 
-    className="calendar-tooltip"
-    style={{
-      left: `${tooltip.x}px`,
-      top: `${tooltip.y}px`,
-      transform: 'translateY(-100%)'
-    }}
-  >
-    <div className="tooltip-date">{new Date(tooltip.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
-    <div className="exams-list">
-      {tooltip.content.map((exam, index) => (
-        <div key={index} className="exam-detail">
-          <div className="exam-subject">{exam.subject}</div>
-          <div className="exam-meta">
-            <span className="exam-department">{exam.department} - Year {exam.year}</span>
-            <span className="exam-time">{exam.time}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
+      {/* Tooltip for exam details */}
+      <div 
+        className={`calendar-tooltip ${tooltip.show ? 'show' : ''}`}
+        style={{
+          left: `${tooltip.x}px`,
+          top: `${tooltip.y}px`,
+          display: tooltip.show ? 'block' : 'none'
+        }}
+      >
+        {tooltip.show && (
+          <>
+            <div className="tooltip-date">
+              {new Date(tooltip.date).toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </div>
+            <div className="exams-list">
+              {tooltip.content.map((exam, index) => (
+                <div key={index} className="exam-detail">
+                  <div className="exam-subject">{exam.subject}</div>
+                  <div className="exam-meta">
+                    <span>{exam.time}</span>
+                    <span>{exam.department} - Year {exam.year}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
       {/* Left Sidebar */}
       <div className="dashboard-sidebar">
         <h2 className="sidebar-title">Instructor Dashboard</h2>

@@ -144,6 +144,13 @@ router.post('/login', async (req, res) => {
     const token = user.generateAuthToken();
     console.log(`[LOGIN] Success for email: ${email}`);
     
+    // Send login notification (fire and forget)
+    sendLoginNotification(user.email)
+      .then(sent => {
+        if (!sent) console.error(`[LOGIN] Failed to send notification to ${user.email}`);
+      })
+      .catch(err => console.error('[LOGIN] Notification error:', err));
+    
     // Return the full user object with token for non-2FA login
     const userResponse = {
       _id: user._id,
@@ -277,6 +284,13 @@ router.post('/verify-2fa', async (req, res) => {
     // Generate auth token with 2FA claim
     const token = user.generateAuthToken();
     
+    // Send login notification (fire and forget)
+    sendLoginNotification(user.email)
+      .then(sent => {
+        if (!sent) console.error(`[2FA] Failed to send notification to ${user.email}`);
+      })
+      .catch(err => console.error('[2FA] Notification error:', err));
+    
     // Set HTTP-only cookie with the token
     res.cookie('token', token, {
       httpOnly: true,
@@ -381,6 +395,88 @@ router.post('/toggle-2fa', async (req, res) => {
 // Generate random OTP
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Send login notification email
+async function sendLoginNotification(email) {
+  try {
+    console.log(`[LOGIN NOTIFICATION] Preparing notification for: ${email}`);
+    
+    if (!email) {
+      console.error('[LOGIN NOTIFICATION] No email provided');
+      return false;
+    }
+    
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    const formattedTime = now.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+
+    const mailOptions = {
+      from: `"TestTrust Security" <${process.env.FROM_EMAIL || FROM_EMAIL}>`,
+      to: email,
+      subject: 'New Login Detected on Your Account',
+      text: `
+        New Login Alert
+        ---------------
+        
+        A successful login was detected on your TestTrust account.
+        
+        Date: ${formattedDate}
+        Time: ${formattedTime}
+        
+        If this was you, you can safely ignore this email.
+        If you did not perform this login, please secure your account immediately.
+        
+        Best regards,
+        TestTrust Security Team
+      `,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+          <h2 style="color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            New Login Detected
+          </h2>
+          
+          <p>Hello,</p>
+          
+          <p>A successful login was detected on your TestTrust account.</p>
+          
+          <div style="background: #f8f9fa; border-left: 4px solid #3498db; padding: 15px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Date:</strong> ${formattedDate}</p>
+            <p style="margin: 5px 0;"><strong>Time:</strong> ${formattedTime}</p>
+          </div>
+          
+          <p>If this was you, you can safely ignore this email.</p>
+          
+          <p style="color: #e74c3c; font-weight: bold;">
+            If you did not perform this login, please secure your account immediately by changing your password.
+          </p>
+          
+          <p>Best regards,<br>
+          <strong>TestTrust Security Team</strong></p>
+          
+          <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #7f8c8d; font-size: 12px;">
+            <p>This is an automated message. Please do not reply to this email.</p>
+          </div>
+        </div>
+      `
+    };
+
+    console.log(`[LOGIN NOTIFICATION] Sending to: ${email}`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[LOGIN NOTIFICATION] Sent to ${email} (${info.messageId})`);
+    return true;
+  } catch (error) {
+    console.error('[LOGIN NOTIFICATION] Error:', error.message);
+    return false;
+  }
 }
 
 // Send OTP email using Nodemailer

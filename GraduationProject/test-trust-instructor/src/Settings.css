@@ -199,8 +199,8 @@
 /* Profile Header */
 .profile-header {
   display: flex;
-  align-items: center;
-  padding: 20px;
+  align-items: flex-start;
+  padding: 30px;
   background: rgba(30, 30, 40, 0.5);
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -208,19 +208,52 @@
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(10px);
+  min-height: 250px;
+  max-height: 70vh;
+  margin-bottom: 30px;
 }
 
-/* Profile Header */
+/* Custom Scrollbar */
+.profile-header::-webkit-scrollbar {
+  width: 8px;
+}
+
+.profile-header::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.profile-header::-webkit-scrollbar-thumb {
+  background-color: rgba(191, 219, 247, 0.3);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.profile-header::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(191, 219, 247, 0.5);
+}
+
+/* Firefox scrollbar */
+@supports (scrollbar-color: auto) {
+  .profile-header {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(191, 219, 247, 0.3) transparent;
+  }
+}
+
+/* Profile Avatar Container */
 .profile-avatar-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-right: 40px;
-  min-width: 140px;
+  margin-right: 50px;
+  min-width: 180px;
   position: relative;
   z-index: 1;
   flex-shrink: 0;
-  height: 100px ;
+  padding: 20px 0;
 }
 
 .avatar-glow {

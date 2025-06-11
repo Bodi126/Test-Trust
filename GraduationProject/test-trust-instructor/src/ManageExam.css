@@ -424,12 +424,13 @@ body {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr 120px;
   align-items: center;
-  padding: 1.25rem 0;
+  padding: 20px 0;
   border-bottom: 1px solid var(--light-gray);
   transition: var(--transition);
   cursor: pointer;
   background: var(--white);
-  gap: 1rem;
+  gap: 20px;
+  
 }
 
 .exam-card:hover {
@@ -1327,8 +1328,8 @@ body {
   
   .exam-card {
     grid-template-columns: 1fr;
-    gap: 1rem;
-    padding: 1.25rem 0;
+    gap: 30px;
+    padding: 20px 0;
     border-bottom: 1px solid var(--light-gray);
   }
   

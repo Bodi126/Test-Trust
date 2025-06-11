@@ -6,13 +6,13 @@ import './ManageExam.css';
 import { useNavigate } from 'react-router-dom';
 
 const subjectIcons = {
-  'Mathematics': '∫',
-  'Physics': 'Φ',
-  'Chemistry': '⚗',
-  'Biology': '🧬',
-  'Engineering': '⚙',
-  'Medicine': '⚕',
-  'Science': '🔬',
+  'mathematics': '∫',
+  'physics': 'Φ',
+  'chemistry': '⚗',
+  'biology': '🧬',
+  'engineering': '⚙',
+  'medicine': '⚕',
+  'science': '🔬',
   'Default': '📝'
 };
 
@@ -90,13 +90,13 @@ const ManageExam = () => {
   });
 
   const handleDelete = (id) => {
-    setExams(exams.filter(exam => exam.id !== id));
+    setExams(exams.filter(exam => (exam.id || exam._id) !== id));
     if (expandedExam === id) setExpandedExam(null);
     if (editingExam === id) setEditingExam(null);
   };
 
   const handleSave = (updatedExam) => {
-    setExams(exams.map(exam => exam.id === updatedExam.id ? updatedExam : exam));
+    setExams(exams.map(exam => (exam.id || exam._id) === (updatedExam.id || updatedExam._id) ? updatedExam : exam));
     setEditingExam(null);
   };
 
@@ -160,7 +160,7 @@ const ManageExam = () => {
         <div className="exams-list">
           {filteredExams.map(exam => (
             <React.Fragment key={exam.id || exam._id}>
-              <div className="exam-card" onClick={() => setExpandedExam(expandedExam === exam.id ? null : exam.id)}>
+              <div className="exam-card">
                 <div className="exam-subject">
                   <div className="exam-subject-icon">
                     {getSubjectIcon(exam.subject)}
@@ -183,7 +183,9 @@ const ManageExam = () => {
                     className="exam-action-btn view"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setExpandedExam(expandedExam === exam.id ? null : exam.id);
+                      const examId = exam.id || exam._id;
+                      setExpandedExam(expandedExam === examId ? null : examId);
+                      setEditingExam(null);
                     }}
                   >
                     <FiEye/>
@@ -192,7 +194,9 @@ const ManageExam = () => {
                     className="exam-action-btn edit"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setEditingExam(editingExam === exam.id ? null : exam.id);
+                      const examId = exam.id || exam._id;
+                      setEditingExam(editingExam === examId ? null : examId);
+                      setExpandedExam(null);
                     }}
                   >
                     <FiEdit/>
@@ -211,12 +215,14 @@ const ManageExam = () => {
 
               {/* Exam Details Section */}
               <AnimatePresence>
-                {expandedExam === exam.id && (
+                {expandedExam === (exam.id || exam._id) && (
                   <motion.div
+                    key={`details-${exam.id || exam._id}`}
                     className="exam-details"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
                   >
                     <div className="details-grid">
                       <div className="details-section">
@@ -311,7 +317,7 @@ const ManageExam = () => {
 
               {/* Edit Exam Section */}
               <AnimatePresence>
-                {editingExam === exam.id && (
+                {editingExam === (exam.id || exam._id) && (
                   <EditExamForm 
                     exam={exam} 
                     onSave={handleSave} 

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from './contexts/AuthContext';
 import { 
   FaShieldAlt, 
   FaFingerprint, 
@@ -14,6 +15,7 @@ import './DiveInto.css';
 
 const DiveInto = () => {
   const navigate = useNavigate();
+  const { currentUser } = useContext(AuthContext);
   const [activeFeature, setActiveFeature] = useState(0);
 
   const features = [
@@ -62,9 +64,13 @@ const DiveInto = () => {
   ];
 
   const handleGetStarted = () => {
-    // Add your navigation logic here
-    console.log("Get Started clicked");
-    navigate('/signup');
+    if (currentUser) {
+      // If user is already logged in, take them to dashboard
+      navigate('/dashboard');
+    } else {
+      // If not logged in, take them to signup
+      navigate('/signup');
+    }
   };
 
   return (

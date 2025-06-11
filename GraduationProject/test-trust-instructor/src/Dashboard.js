@@ -5,6 +5,9 @@ import { useLocation } from "react-router-dom";
 import Calendar from 'react-calendar';
 import axios from 'axios';
 import { format } from 'date-fns';
+import ExamControl from './ExamControl'; 
+import io from 'socket.io-client';
+
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -16,6 +19,7 @@ function Dashboard() {
   const [tooltip, setTooltip] = useState({ show: false, content: '', x: 0, y: 0 });
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [examReady, setExamReady] = useState(false);
+  
 
   // Handle date change in the calendar
   const handleDateChange = (date) => {
@@ -27,6 +31,12 @@ function Dashboard() {
     // You can add logic here if you need to handle month/year changes
     console.log('View changed to:', activeStartDate);
   };
+
+  const socket = io('http://localhost:5000');
+
+const handleTestMessage = () => {
+  socket.emit('test_message', 'Hello from Doctor 👨‍🏫');
+};
 
   useEffect(() => {
     const fetchExams = async () => {
@@ -75,10 +85,12 @@ function Dashboard() {
   };
 
   const handleStartExam = (exam) => {
+  socket.emit('start_exam', exam._id);
   setExamData(exam);
   setExamReady(true);
   navigate(`/start-exam/${exam._id}`);
 };
+
 
 
   // Filter exams for today
@@ -351,12 +363,6 @@ function Dashboard() {
                     </div>
                     <div className="exam-meta">
                       <span>{exam.department} - {exam.year}</span>
-                        <button 
-                          className="nav-button" 
-                          onClick={() => handleStartExam(exam)}
-                        >
-                          <span>Start</span>
-                        </button>
                       <span>{formatTime(exam.examTime)}</span>
                     </div>
                   </div>
@@ -411,7 +417,19 @@ function Dashboard() {
             <p className="stat-value">-</p>
           </div>
         </div>
+        {todaysExams.map((exam, index) => (
+  <div key={exam._id} className="exam-card">
+    <h4>{exam.subject}</h4>
+    <p>Date: {formatDate(exam.examDate)}</p>
+    <p>Time: {formatTime(exam.examTime)}</p>
+    <button onClick={() => handleStartExam(exam)}>
+      Start
+    </button>
+  </div>
+))}
+
       </div>
+      
 
       {/* Right Calendar Section */}
       <div className="dashboard-calendar">
@@ -431,6 +449,7 @@ function Dashboard() {
           
 
         </div>
+        
         
         {/* Upcoming exams list */}
         <div className="calendar-events">
@@ -452,6 +471,7 @@ function Dashboard() {
             )}
           </div>
         </div>
+        
       </div>
     </div>
   );

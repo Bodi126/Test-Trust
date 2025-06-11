@@ -14,16 +14,16 @@ const examRoutes = require("./routes/exams");
 const app = express();
 
 // Middleware - Must be before routes
-app.use(cors({
+{/*app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+}));*/}
 
 // Body parser middleware - must be before routes
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+{/*app.use(express.json());
+app.use(express.urlencoded({ extended: true }));*/}
 
 // Remove body-parser as we're using express's built-in
 // app.use(bodyParser.json());
@@ -34,45 +34,45 @@ const server = http.createServer(app); // Use this instead of app.listen directl
 // Socket.IO setup
 const io = new Server(server, {
     cors: {
-        origin: 'http://localhost:3000',
+        origin: '*',
         methods: ['GET', 'POST']
     }
 });
 
 const connectedStudents = {};
+global.connectedStudents = connectedStudents;
 
-// Handle socket connections
+
 io.on('connection', (socket) => {
-    console.log("User connected:", socket.id);
+  console.log(" User connected:", socket.id);
 
-    socket.on('student_join', (studentId) => {
-        connectedStudents[studentId] = socket.id;
-        console.log(`Student ${studentId} connected with socket ${socket.id}`);
-    });
+  socket.on('student_join', (studentId) => {
+    if (studentId) {
+      connectedStudents[studentId] = socket.id;
+      console.log(`Student ${studentId} connected with socket ${socket.id}`);
+    }
+  });
 
-    socket.on('start_exam', () => {
-        io.emit('start_exam'); // broadcast to all students
-        console.log('Exam started');
-    });
+  socket.on('start_exam', () => {
+    console.log('🚀 Exam started');
+    io.emit('start_exam');
+  });
 
-    socket.on('end_exam_for_student', (studentId) => {
-        const socketId = connectedStudents[studentId];
-        if (socketId) {
-            io.to(socketId).emit('end_exam');
-            console.log(`Ended exam for student ${studentId}`);
-        }
-    });
+  socket.on('end_exam_for_student', (studentId) => {
+    const socketId = connectedStudents[studentId];
+    if (socketId) {
+      io.to(socketId).emit('end_exam');
+      console.log(`⛔ Ended exam for student ${studentId}`);
+    }
+  });
 
-    socket.on('disconnect', () => {
-        console.log("User disconnected:", socket.id);
-        for (let id in connectedStudents) {
-            if (connectedStudents[id] === socket.id) {
-                delete connectedStudents[id];
-                break;
-            }
-        }
-    });
+  socket.on('disconnect', () => {
+    console.log("❌ User disconnected:", socket.id);
+  });
 });
+
+
+
 
 
 // CORS configuration
@@ -93,7 +93,6 @@ app.use(cors({
 
 
 app.options('*', cors());
-
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 

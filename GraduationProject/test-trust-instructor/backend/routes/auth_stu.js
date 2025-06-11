@@ -36,7 +36,7 @@ router.post('/login', async (req, res) => {
     const { fullName, nationalId } = req.body;
     console.log('Login Attempt:', { fullName, nationalId });
 
-    const student = await Student.findOne({ fullName: fullName.trim() });
+    const student = await Student.findOne({ fullName: fullName });
 
     if (!student) {
       return res.status(404).json({ message: "User doesn't exist" });

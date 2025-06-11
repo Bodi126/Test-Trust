@@ -6,7 +6,7 @@ const Exam = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/auth//exam-questions/:examId')
+    axios.get('http://localhost:5000/api/auth/exam-questions/:examId')
       .then(res => setQuestions(res.data))
       .catch(err => console.error('Failed to load questions', err));
   }, []);

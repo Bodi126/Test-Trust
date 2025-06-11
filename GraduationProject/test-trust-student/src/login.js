@@ -73,6 +73,7 @@ const Login = () => {
       alert('Login successful');
       localStorage.setItem('studentName', data.student.fullName); 
       localStorage.setItem('studentId', data.student._id);
+      localStorage.setItem('nationalId', data.student.nationalId);
       socket.emit('student_join', data.student._id);
       window.location.href = '/'; 
     } else {
@@ -84,7 +85,7 @@ const Login = () => {
   }
 };
 
-  
+
   return (
 
 

@@ -6,6 +6,7 @@ const User = require('../models/user');
 const ModelAnswer = require('../models/modelAnswer');
 const Exam = require('../models/exam');
 const Question = require('../models/question');
+const stu_answer = require('../models/student_answer');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
@@ -942,25 +943,27 @@ try {
 });
 
 router.get('/alltoday_exams', async (req, res) => {
-try {
+  try {
+    const now = new Date();
+    const localDate = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Cairo' })); 
+    const startOfDay = new Date(localDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(localDate.setHours(23, 59, 59, 999));
 
-  const today = new Date();
-  const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-  const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+    const exams = await Exam.find({
+      examDate: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      },
+      archiveExam: false
+    });
 
-  const exams = await Exam.find({
-    examDate: {
-      $gte: startOfDay,
-      $lte: endOfDay,
-    },
-  });
-
-  res.status(200).json({ exams });
-} catch (err) {
-  console.error('Error fetching today\'s exams:', err);
-  res.status(500).json({ error: 'Failed to fetch today\'s exams' });
-}
+    res.status(200).json({ exams });
+  } catch (err) {
+    console.error("Error fetching today's exams:", err);
+    res.status(500).json({ error: 'Failed to fetch today\'s exams' });
+  }
 });
+
 
 // Get model answers for multiple questions
 router.get('/model-answers/batch', async (req, res) => {
@@ -1147,6 +1150,72 @@ router.get('/exams/date/:date', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch exams by date' });
   }
 });
+
+// route: GET /api/questions/:examId
+router.get('/api/questions/:examId', async (req, res) => {
+  try {
+    const questions = await Question.find({ examId: req.params.examId }).sort({ number: 1 });
+    res.json(questions);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
+// route: POST /api/student-answers
+router.post('/api/student-answers', async (req, res) => {
+  const { studentNationalId, examId, answers } = req.body;
+
+  try {
+    await StudentAnswer.create({ studentNationalId, examId, answers });
+    res.status(201).json({ message: 'Answers submitted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error saving answers' });
+  }
+});
+
+
+// جلب إجابة الطالب لامتحان معين
+router.get('/student-answers/:examId/:studentNationalId', async (req, res) => {
+  const { examId, studentNationalId } = req.params;
+  try {
+    const studentAnswer = await StudentAnswer.findOne({ examId, studentNationalId });
+    if (!studentAnswer) return res.status(404).json({ error: 'Answers not found' });
+    res.json(studentAnswer);
+  } catch (err) {
+    console.error('Error fetching student answers:', err);
+    res.status(500).json({ error: 'Failed to fetch student answers' });
+  }
+});
+
+// رفع نتيجة طالب بعد التصحيح (لو في مقالي)
+router.post('/results/submit', async (req, res) => {
+  const { studentNationalId, examId, score } = req.body;
+  try {
+    const result = await Result.create({ studentNationalId, examId, score });
+    res.status(201).json({ message: 'Result submitted successfully' });
+  } catch (err) {
+    console.error('Error submitting result:', err);
+    res.status(500).json({ error: 'Failed to submit result' });
+  }
+});
+
+// route: GET /api/students/:nationalId
+router.get('/api/students/:nationalId', async (req, res) => {
+  try {
+    const student = await Student.findOne({ nationalId: req.params.nationalId });
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    res.json(student);
+  } catch (err) {
+    console.error('Error fetching student:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
+
 
 
 module.exports = router;

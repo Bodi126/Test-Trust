@@ -379,7 +379,15 @@ function Dashboard() {
                       <p>{formatTime(exam.examTime)}</p>
                       <small>{exam.department} - {exam.year}</small>
                     </div>
-                    <button className="view-button">View</button>
+                    <button 
+                      className="view-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/ManageExam/${exam._id}`);
+                      }}
+                    >
+                      View
+                    </button>
                   </div>
                 ))
               ) : (

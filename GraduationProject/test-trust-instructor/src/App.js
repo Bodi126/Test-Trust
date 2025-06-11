@@ -174,7 +174,7 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/addexam1" element={<AddExam1 />} />
               <Route path="/addexam2" element={<AddExam2 />} />
-              <Route path="/ManageExam" element={<ManageExams />} />
+              <Route path="/ManageExam/:examId?" element={<ManageExams />} />
               <Route path="/ManageStudents" element={<ManageStudents />} />
               <Route path="/settings" element={<Settings />} />
             </Route>

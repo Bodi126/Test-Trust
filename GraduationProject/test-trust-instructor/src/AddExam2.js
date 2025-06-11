@@ -36,6 +36,21 @@ const AddExam2 = () => {
 
   const handleQuestionTypeChange = (type) => {
     setQuestionType(type);
+    // Reset answer state based on question type
+    const initialAnswer = {};
+    if (type === 'mcq') {
+      // Initialize with empty options
+      initialAnswer.optionA = '';
+      initialAnswer.optionB = '';
+      initialAnswer.optionC = '';
+      initialAnswer.optionD = '';
+      initialAnswer.correctOption = '';
+    } else if (type === 'trueFalse') {
+      initialAnswer.trueFalseAnswer = '';
+    } else if (type === 'written') {
+      initialAnswer.modelAnswer = '';
+    }
+    setAnswer(initialAnswer);
     setExpanded(true);
   };
 
@@ -186,7 +201,12 @@ const AddExam2 = () => {
   };
 
   const renderAnswerInput = () => {
-    if (!autoCorrection) return null;
+    console.log('Rendering answer input with:', { autoCorrection, questionType, answer });
+    
+    if (!autoCorrection) {
+      console.log('Auto-correction is disabled');
+      return null;
+    }
 
     switch (questionType) {
       case 'mcq':
@@ -339,12 +359,94 @@ const AddExam2 = () => {
               {renderQuestionInput()}
             </div>
             
-            {autoCorrection && (
-              <div className="answer-panel">
+            {autoCorrection && questionType && (
+              <div className="answer-panel" style={{
+                minWidth: '400px',
+                display: 'flex',
+                flexDirection: 'column',
+                background: 'white',
+                borderRadius: '10px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                overflow: 'hidden',
+                padding: '20px'
+              }}>
                 <div className="auto-correct-info">
                   <p>Auto-correction is enabled. Marks will be distributed evenly.</p>
                 </div>
-                {renderAnswerInput()}
+                <div className="answer-section" style={{
+                  marginTop: '20px',
+                  width: '100%'
+                }}>
+                  {questionType === 'mcq' && (
+                    <div>
+                      <h3>Correct Answer</h3>
+                      <div style={{ display: 'grid', gap: '10px', marginTop: '10px' }}>
+                        {['A', 'B', 'C', 'D'].map(option => (
+                          <label key={option} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <input
+                              type="radio"
+                              name="correctOption"
+                              value={option}
+                              checked={answer.correctOption === option}
+                              onChange={handleAnswerChange}
+                              required={autoCorrection}
+                            />
+                            Option {option}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {questionType === 'trueFalse' && (
+                    <div>
+                      <h3>Correct Answer</h3>
+                      <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <input
+                            type="radio"
+                            name="trueFalseAnswer"
+                            value="true"
+                            checked={answer.trueFalseAnswer === 'true'}
+                            onChange={handleAnswerChange}
+                            required={autoCorrection}
+                          />
+                          True
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <input
+                            type="radio"
+                            name="trueFalseAnswer"
+                            value="false"
+                            checked={answer.trueFalseAnswer === 'false'}
+                            onChange={handleAnswerChange}
+                            required={autoCorrection}
+                          />
+                          False
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                  {questionType === 'written' && (
+                    <div>
+                      <h3>Model Answer</h3>
+                      <textarea
+                        name="modelAnswer"
+                        value={answer.modelAnswer || ''}
+                        onChange={handleAnswerChange}
+                        placeholder="Enter the expected answer"
+                        rows={4}
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          marginTop: '10px',
+                          borderRadius: '4px',
+                          border: '1px solid #e2e8f0'
+                        }}
+                        required={autoCorrection}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

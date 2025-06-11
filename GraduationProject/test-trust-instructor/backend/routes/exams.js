@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Exam = require('../models/exam');
+const Question = require('../models/question');
 
 // Combined dashboard endpoint
 router.get('/dashboard', async (req, res) => {
@@ -68,6 +69,47 @@ router.get('/dashboard', async (req, res) => {
     } catch (error) {
         console.error('Error fetching dashboard data:', error);
         res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get single exam by ID
+router.get('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const exam = await Exam.findById(id);
+        
+        if (!exam) {
+            return res.status(404).json({ message: 'Exam not found' });
+        }
+        
+        res.json(exam);
+    } catch (error) {
+        console.error('Error fetching exam:', error);
+        res.status(500).json({ message: 'Error fetching exam', error: error.message });
+    }
+});
+
+// Delete an exam
+router.delete('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // First verify the exam exists
+        const exam = await Exam.findById(id);
+        if (!exam) {
+            return res.status(404).json({ message: 'Exam not found' });
+        }
+
+        // Delete the exam
+        await Exam.findByIdAndDelete(id);
+        
+        // Delete related questions if they exist
+        await Question.deleteMany({ examId: id });
+        
+        res.json({ message: 'Exam deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting exam:', error);
+        res.status(500).json({ message: 'Error deleting exam', error: error.message });
     }
 });
 

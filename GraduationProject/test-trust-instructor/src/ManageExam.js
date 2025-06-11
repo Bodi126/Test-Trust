@@ -80,19 +80,46 @@ const ManageExam = () => {
   });
 
   const filteredExams = exams.filter(exam => {
+    // Check if exam date is today or in the future
+    const examDate = new Date(exam.date || exam.examDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate date comparison
+    
+    const isFutureOrToday = examDate >= today;
     const matchesSearch = exam.subject.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         exam.doctor.toLowerCase().includes(searchTerm.toLowerCase());
+                         (exam.doctor && exam.doctor.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesFilters = 
       (filters.department === '' || exam.department === filters.department) &&
       (filters.year === '' || exam.year === filters.year) &&
       (filters.subject === '' || exam.subject.includes(filters.subject));
-    return matchesSearch && matchesFilters;
+      
+    return isFutureOrToday && matchesSearch && matchesFilters;
   });
 
-  const handleDelete = (id) => {
-    setExams(exams.filter(exam => (exam.id || exam._id) !== id));
-    if (expandedExam === id) setExpandedExam(null);
-    if (editingExam === id) setEditingExam(null);
+  const handleDelete = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/exams/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Only update the UI if the delete was successful on the server
+        setExams(exams.filter(exam => (exam.id || exam._id) !== id));
+        if (expandedExam === id) setExpandedExam(null);
+        if (editingExam === id) setEditingExam(null);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to delete exam: ${errorData.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting exam:', error);
+      alert('Failed to delete exam. Please try again.');
+    }
   };
 
   const handleSave = (updatedExam) => {
@@ -205,7 +232,10 @@ const ManageExam = () => {
                     className="exam-action-btn delete"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(exam.id);
+                      const examId = exam.id || exam._id;
+                      if (window.confirm(`Are you sure you want to delete the exam "${exam.subject}"?`)) {
+                        handleDelete(examId);
+                      }
                     }}
                   >
                     <FiTrash2/>

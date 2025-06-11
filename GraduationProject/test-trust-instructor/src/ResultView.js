@@ -17,10 +17,13 @@ import {
   TableRow,
   Avatar,
   LinearProgress,
-  Chip
+  Chip,
+  IconButton
 } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import { useNavigate } from 'react-router-dom';
 import './ResultView.css';
 
 const mockResults = [
@@ -29,11 +32,10 @@ const mockResults = [
   { id: 3, name: 'Alex Johnson', avatar: 'AJ', year: '2023', department: 'Electrical', subject: 'Circuit Theory', score: 91, grade: 'A+', status: 'Passed' },
   { id: 4, name: 'Sarah Williams', avatar: 'SW', year: '2022', department: 'Mechanical', subject: 'Thermodynamics', score: 68, grade: 'C', status: 'Passed' },
   { id: 5, name: 'Michael Brown', avatar: 'MB', year: '2022', department: 'Computer Science', subject: 'Algorithms', score: 45, grade: 'F', status: 'Failed' },
-  { id: 6, name: 'Emily Davis', avatar: 'ED', year: '2023', department: 'Electrical', subject: 'Circuit Theory', score: 88, grade: 'A', status: 'Passed' },
-  { id: 7, name: 'David Wilson', avatar: 'DW', year: '2022', department: 'Mechanical', subject: 'Thermodynamics', score: 52, grade: 'D', status: 'Passed' },
 ];
 
 const ResultView = () => {
+  const navigate = useNavigate();
   const [yearFilter, setYearFilter] = useState('All');
   const [departmentFilter, setDepartmentFilter] = useState('All');
   const [subjectFilter, setSubjectFilter] = useState('All');
@@ -67,21 +69,42 @@ const ResultView = () => {
     averageScore: Math.round(item.score / item.count)
   }));
 
+  const handleBackToDashboard = () => {
+    navigate('/dashboard'); // Update this path to match your dashboard route
+  };
+
   return (
     <div className="frame-container">
       <Container maxWidth="lg" className="result-container">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Typography variant="h4" component="h1" className="page-title">
-            Exam Results
-          </Typography>
-          <Typography variant="subtitle1" className="page-subtitle">
-            View and analyze student performance
-          </Typography>
-        </motion.div>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <IconButton 
+            onClick={handleBackToDashboard}
+            sx={{
+              mr: 2,
+              color: 'primary.main',
+              bgcolor: 'rgba(63, 81, 181, 0.08)',
+              '&:hover': {
+                bgcolor: 'rgba(63, 81, 181, 0.2)',
+                transform: 'translateX(-2px)'
+              }
+            }}
+          >
+            <ArrowBackIosNewIcon fontSize="small" />
+          </IconButton>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Typography variant="h4" component="h1" className="page-title">
+              Exam Results Dashboard
+            </Typography>
+            <Typography variant="subtitle1" className="page-subtitle">
+              View and analyze student performance
+            </Typography>
+          </motion.div>
+        </Box>
 
         <Paper className="filter-card">
           <Grid container spacing={2}>

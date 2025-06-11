@@ -1,12 +1,13 @@
 /* Frame container */
 .frame-container {
     width: 1350px;
-    height: 650px;
+    height: 700px;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     background-color: white;
+    margin-bottom: 60px;
   }
   
   /* Main container */
@@ -30,6 +31,31 @@
     margin-bottom: 8px;
   }
   
+  .dashboard-button {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    padding: 8px 16px;
+    background-color: #3f51b5;
+    color: white;
+    border-radius: 4px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+  }
+  
+  .dashboard-button:hover {
+    background-color: #303f9f;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  
+  .dashboard-button svg {
+    margin-right: 8px;
+    font-size: 1rem;
+  }
+
   .page-subtitle {
     font-size: 1rem;
     color: #64748b;

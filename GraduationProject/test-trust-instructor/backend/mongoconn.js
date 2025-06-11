@@ -91,10 +91,7 @@ app.use(cors({
     exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar']
 }));
 
-// Handle preflight requests
-app.options('*', cors());
-
-
+// Handle preflight request
 app.options('*', cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));

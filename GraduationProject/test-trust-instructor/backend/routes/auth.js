@@ -27,28 +27,64 @@ const transporter = nodemailer.createTransport({
 // Email configuration
 const FROM_EMAIL = process.env.FROM_EMAIL;
 
-// Only allow setting twoFactorCode and twoFactorExpires in /send-2fa-code and /verify-2fa endpoints
+// Signup route
 router.post('/signup', async (req, res) => {
   try {
-    const { email, ...rest } = req.body;
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already exists' });
+    console.log('Signup request received:', req.body);
+    
+    // Validate required fields
+    const { firstName, lastName, idNumber, position, email, password } = req.body;
+    
+    if (!firstName || !lastName || !idNumber || !position || !email || !password) {
+      return res.status(400).json({ 
+        message: 'All fields are required',
+        requiredFields: ['firstName', 'lastName', 'idNumber', 'position', 'email', 'password']
+      });
     }
 
-    // Prevent twoFactorCode and twoFactorExpires from being set on signup
-    const filteredRest = { ...rest };
-    delete filteredRest.twoFactorCode;
-    delete filteredRest.twoFactorExpires;
+    // Check if user already exists (case-insensitive email check)
+    const existingUser = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    if (existingUser) {
+      console.log('Signup failed: Email already exists:', email);
+      return res.status(400).json({ 
+        message: 'Email already exists',
+        code: 'EMAIL_EXISTS'
+      });
+    }
 
-    const newUser = new User({ email, ...filteredRest });
+    // Create new user
+    const newUser = new User({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      idNumber: idNumber.toString().trim(),
+      position: position.trim(),
+      email: email.trim().toLowerCase(),
+      password: password.trim(),
+      twoFactorEnabled: false
+    });
+
     await newUser.save();
-    console.log('New user created:', newUser);
+    console.log('New user created successfully:', { 
+      email: newUser.email,
+      id: newUser._id 
+    });
 
-    res.status(201).json({ message: 'Account created successfully' });
+    res.status(201).json({ 
+      success: true,
+      message: 'Account created successfully',
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName
+      }
+    });
   } catch (err) {
-    res.status(500).json({ message: 'Signup error', error: err });
+    console.error('Signup error:', err);
+    res.status(500).json({ 
+      message: 'Error creating account',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 });
 

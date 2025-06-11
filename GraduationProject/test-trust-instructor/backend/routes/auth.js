@@ -480,8 +480,57 @@ async function sendLoginNotification(email) {
   }
 }
 
+// Send contact form email
+async function sendContactEmail(userEmail, message) {
+  try {
+    const mailOptions = {
+      from: `"TestTrust Support" <${process.env.EMAIL_USER}>`,
+      to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER, // Send to admin email or fallback to sender
+      subject: 'New Contact Form Submission',
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2>New Contact Message</h2>
+          <p><strong>From:</strong> ${userEmail}</p>
+          <p><strong>Message:</strong></p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+            ${message.replace(/\n/g, '<br>')}
+          </div>
+          <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
+            This is an automated message from TestTrust. Please do not reply to this email.
+          </p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending contact email:', error);
+    throw new Error('Failed to send contact email');
+  }
+}
+
+// Contact form submission
+router.post('/contact', async (req, res) => {
+  try {
+    const { email, message } = req.body;
+    
+    if (!email || !message) {
+      return res.status(400).json({ message: 'Email and message are required' });
+    }
+
+    // Send the email
+    await sendContactEmail(email, message);
+    
+    res.status(200).json({ message: 'Your message has been sent successfully!' });
+  } catch (error) {
+    console.error('Error in contact form submission:', error);
+    res.status(500).json({ message: error.message || 'Failed to send message' });
+  }
+});
+
 // Send OTP email using Nodemailer
-const sendOTPEmail = async (email, otp) => {
+async function sendOTPEmail(email, otp) {
   try {
     const mailOptions = {
       from: `"TestTrust" <${FROM_EMAIL}>`,
@@ -630,6 +679,77 @@ router.post('/verify-reset-otp', async (req, res) => {
   } catch (error) {
     console.error('Verify OTP error:', error);
     res.status(500).json({ message: 'Failed to verify OTP' });
+  }
+});
+
+// Delete account
+router.delete('/delete-account', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email and password are required' 
+      });
+    }
+
+    console.log('Delete account - Searching for user with email:', email);
+    
+    // Find user by email (case-insensitive) and explicitly select the password field
+    const user = await User.findOne({ 
+      email: { $regex: new RegExp(`^${email}$`, 'i') } 
+    }).select('+password');
+
+    console.log('User found:', user ? 'Yes' : 'No');
+    
+    if (!user) {
+      console.log('User not found with email:', email);
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+    
+    console.log('User object methods:', Object.keys(user).filter(key => typeof user[key] === 'function'));
+    console.log('User schema methods:', Object.keys(user.schema.methods));
+
+    try {
+      console.log('Starting password verification');
+      console.log('Input password:', password);
+      console.log('Stored password:', user.password);
+      
+      // Direct password comparison (temporary for testing)
+      if (user.password !== password) {
+        console.log('Password verification failed');
+        return res.status(401).json({ 
+          success: false,
+          message: 'Invalid credentials' 
+        });
+      }
+
+      // Delete user
+      await User.findByIdAndDelete(user._id);
+      
+      res.json({ 
+        success: true,
+        message: 'Account deleted successfully' 
+      });
+    } catch (error) {
+      console.error('Password verification error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error verifying password',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to delete account',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

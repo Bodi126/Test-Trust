@@ -154,10 +154,6 @@ function Login() {
           </div>
 
           <div className="options-row">
-            <div className="remember-me">
-              <input type="checkbox" id="remember" />
-              <label htmlFor="remember">Remember me</label>
-            </div>
             <span className="forgot-password" onClick={() => navigate('/ForgetPassword')}>
               Forgot password?
             </span>

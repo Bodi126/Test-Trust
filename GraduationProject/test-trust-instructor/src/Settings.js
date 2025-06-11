@@ -36,62 +36,187 @@ import SecurityIcon from '@mui/icons-material/Security';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import LockIcon from '@mui/icons-material/Lock';
 import LogoutIcon from '@mui/icons-material/Logout';
+import HomeIcon from '@mui/icons-material/Home';
+import ContactSupportIcon from '@mui/icons-material/ContactSupport';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import axios from 'axios';
 import './Settings.css';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import DialogContentText from '@mui/material/DialogContentText';
 
 const Settings = () => {
-  const onSubmit = (data) => {
-    console.log('Form submitted:', data);
-    // Add form submission logic here
-  };
-
+  // State variables
   const [profileData, setProfileData] = useState(null);
-  const { register, handleSubmit, reset } = useForm();
   const [anchorEl, setAnchorEl] = useState(null);
-  const [avatar, setAvatar] = useState(null);
   const [activeTab, setActiveTab] = useState('profile');
-  const [colorTheme, setColorTheme] = useState('#6e48aa');
   const [contactOpen, setContactOpen] = useState(false);
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactMessage, setContactMessage] = useState('');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [loginNotificationsEnabled, setLoginNotificationsEnabled] = useState(true);
   const [allExams, setAllExams] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [twoFactorLoading, setTwoFactorLoading] = useState(false);
   const [twoFactorError, setTwoFactorError] = useState('');
   const [twoFactorSuccess, setTwoFactorSuccess] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
-  const examCount = allExams.length; // Calculate count from allExams array
+  const [loginNotificationsEnabled, setLoginNotificationsEnabled] = useState(true);
+  const [colorTheme, setColorTheme] = useState('#6e48aa');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactMessage, setContactMessage] = useState('');
+  const [avatar, setAvatar] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
   
-  // Handle edit profile
-  const handleEditClick = () => {
-    setIsEditing(true);
-  };
-
-  // Handle save profile
-  const handleSaveProfile = (data) => {
-    console.log('Saving profile:', data);
-    // Here you would typically make an API call to save the profile
-    // For now, we'll just update the local state
-    setProfileData(prev => ({
-      ...prev,
-      firstName: data.firstName,
-      lastName: data.lastName
-    }));
-    setIsEditing(false);
-  };
-
-  // Handle cancel edit
-  const handleCancelEdit = () => {
-    reset(profileData); // Reset form to original values
-    setIsEditing(false);
-  };
-
+  const examCount = allExams.length; // Calculate count from allExams array
   const navigate = useNavigate();
+  const { register, reset, handleSubmit } = useForm();
   const { logout } = useContext(AuthContext);
   const currentUser = JSON.parse(localStorage.getItem('user'));
+  
+  const onSubmit = (data) => {
+    console.log('Form submitted:', data);
+    // Handle form submission if needed
+  };
+  
+  const colorThemes = [
+    '#6e48aa', // Purple
+    '#4776E6', // Blue
+    '#00C9A7', // Teal
+    '#FF6B6B', // Coral
+    '#FFC75F'  // Gold
+  ];
+  
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      setDeleteError('');
+      const token = localStorage.getItem('token');
+      const userEmail = currentUser?.email || '';
+      
+      if (!token || !userEmail) {
+        setDeleteError('Authentication error. Please log in again.');
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/auth/delete-account', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          email: userEmail,
+          password: password
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to delete account');
+      }
+
+      // Logout and redirect to home page
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/');
+    } catch (error) {
+      console.error('Delete account error:', error);
+      setDeleteError(error.message || 'Failed to delete account. Please try again.');
+    }
+  };
+
+  const handleOptionSelect = (option) => {
+    handleMenuClose();
+    if (option === 'dashboard') {
+      navigate('/Dashboard');
+    } else if (option === 'delete-account') {
+      setDeleteDialogOpen(true);
+    } else if (option === 'contact') {
+      setContactOpen(true);
+    }
+  };
+  
+  const handleContactSubmit = async () => {
+    try {
+      const response = await fetch('/api/auth/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          email: contactEmail,
+          message: contactMessage
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send message');
+      }
+
+      setContactOpen(false);
+      setContactEmail('');
+      setContactMessage('');
+      
+      // Show success message
+      alert(data.message || 'Your message has been sent successfully!');
+    } catch (error) {
+      console.error('Error submitting contact form:', error);
+      alert(error.message || 'Failed to send message. Please try again later.');
+    }
+  };
+  
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatar(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleLoginNotificationsToggle = (event) => {
+    setLoginNotificationsEnabled(event.target.checked);
+  };
+  
+  const ActivityItem = ({ icon, primary, secondary, time, success, star, warning }) => (
+    <>
+      <ListItem className="activity-item">
+        <ListItemAvatar>
+          <Avatar className={`activity-icon ${success ? 'success' : ''} ${star ? 'star' : ''} ${warning ? 'warning' : ''}`}>
+            {icon}
+          </Avatar>
+        </ListItemAvatar>
+        <ListItemText
+          primary={primary}
+          secondary={
+            <>
+              <Typography component="span" variant="body2">
+                {secondary}
+              </Typography>
+              <Typography variant="caption" className="activity-time">
+                {time}
+              </Typography>
+            </>
+          }
+        />
+      </ListItem>
+      <Divider variant="inset" component="li" />
+    </>
+  );
+
+
 
   // Fetch user's exams - matches Dashboard's implementation
   const fetchExams = async () => {
@@ -327,104 +452,107 @@ const Settings = () => {
     };
 
     fetchProfileData();
-  }, [currentUser, reset, navigate]);
+  }, [currentUser, navigate]);
 
   const handleSignOut = () => {
     logout();
     navigate('/App');
   };
 
-  const handleLoginNotificationsToggle = async (event) => {
-    const enabled = event.target.checked;
-    try {
-      await axios.post('http://localhost:5000/api/auth/login-notifications', {
-        email: currentUser.email,
-        enabled
-      });
-      setLoginNotificationsEnabled(enabled);
-    } catch (err) {
-      console.error('Failed to update login notifications:', err);
-    }
-  };
-
-  const handleMenuClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleOptionSelect = (option) => {
-    handleMenuClose();
-    if (option === 'dashboard') {
-      navigate('/Dashboard');
-    } else if (option === 'remove') {
-      alert('A confirmation email will be sent to your registered email address to confirm account deletion.');
-    } else if (option === 'contact') {
-      setContactOpen(true);
-    }
-  };
-
-  const handleContactSubmit = () => {
-    console.log("Contact form submitted:", { email: contactEmail, message: contactMessage });
-    setContactOpen(false);
-    setContactEmail('');
-    setContactMessage('');
-    alert('Your message has been sent successfully!');
-  };
-
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatar(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const colorThemes = [
-    '#6e48aa', // Purple
-    '#4776E6', // Blue
-    '#00C9A7', // Teal
-    '#FF6B6B', // Coral
-    '#FFC75F'  // Gold
-  ];
-
-  const ActivityItem = ({ icon, primary, secondary, time, success, star, warning }) => (
-    <>
-      <ListItem className="activity-item">
-        <ListItemAvatar>
-          <Avatar className={`activity-icon ${success ? 'success' : ''} ${star ? 'star' : ''} ${warning ? 'warning' : ''}`}>
-            {icon}
-          </Avatar>
-        </ListItemAvatar>
-        <ListItemText
-          primary={primary}
-          secondary={
-            <>
-              <Typography component="span" variant="body2">
-                {secondary}
-              </Typography>
-              <Typography variant="caption" className="activity-time">
-                {time}
-              </Typography>
-            </>
-          }
-        />
-      </ListItem>
-      <Divider variant="inset" component="li" />
-    </>
-  );
+  // ... (rest of the code remains the same)
 
   const renderTabContent = () => {
     if (!profileData) {
       return (
-        <Box className="loading-spinner">
-          <div className="pulse-animation"></div>
-          <Typography variant="body2" sx={{ mt: 2 }}>Loading your settings...</Typography>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '300px',
+          width: '100%',
+          position: 'relative',
+        }}>
+          <Box sx={{
+            position: 'relative',
+            width: '80px',
+            height: '80px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mb: 3,
+          }}>
+            {/* Outer circle */}
+            <Box sx={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              border: '3px solid rgba(110, 72, 170, 0.2)',
+              borderTopColor: 'transparent',
+              animation: 'spin 1.2s linear infinite',
+              '@keyframes spin': {
+                '0%': { transform: 'rotate(0deg)' },
+                '100%': { transform: 'rotate(360deg)' },
+              },
+            }} />
+            {/* Middle circle */}
+            <Box sx={{
+              position: 'absolute',
+              width: '70%',
+              height: '70%',
+              borderRadius: '50%',
+              border: '3px solid rgba(110, 72, 170, 0.4)',
+              borderTopColor: 'transparent',
+              animation: 'spinReverse 1.5s linear infinite',
+              '@keyframes spinReverse': {
+                '0%': { transform: 'rotate(0deg)' },
+                '100%': { transform: 'rotate(-360deg)' },
+              },
+            }} />
+            {/* Inner circle */}
+            <Box sx={{
+              position: 'absolute',
+              width: '40%',
+              height: '40%',
+              borderRadius: '50%',
+              border: '3px solid rgba(110, 72, 170, 0.6)',
+              borderTopColor: 'transparent',
+              animation: 'spin 2s linear infinite',
+            }} />
+            {/* Pulsing dot */}
+            <Box sx={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #6e48aa, #9d50bb)',
+              boxShadow: '0 0 15px rgba(110, 72, 170, 0.8)',
+              animation: 'pulse 1.5s ease-in-out infinite',
+              '@keyframes pulse': {
+                '0%, 100%': { transform: 'scale(1)', opacity: 1 },
+                '50%': { transform: 'scale(1.3)', opacity: 0.7 },
+              },
+            }} />
+          </Box>
+          <Typography variant="h6" sx={{
+            color: '#fff',
+            fontWeight: 500,
+            mb: 1,
+            background: 'linear-gradient(90deg, #fff, #d1c4e9)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            animation: 'fadeIn 0.5s ease-out',
+          }}>
+            Loading Your Settings
+          </Typography>
+          <Typography variant="body2" sx={{
+            color: 'rgba(255, 255, 255, 0.7)',
+            maxWidth: '300px',
+            textAlign: 'center',
+            animation: 'fadeIn 0.5s 0.1s ease-out both',
+          }}>
+            Just a moment while we prepare your personalized settings...
+          </Typography>
         </Box>
       );
     }
@@ -432,24 +560,24 @@ const Settings = () => {
       case 'profile':
         return (
           <div className="tab-content">
-            <h3>Profile Settings</h3>
-            <form onSubmit={handleSubmit(handleSaveProfile)}>
+            <h3>Profile Information</h3>
+            <div style={{ marginTop: '20px' }}>
               <TextField
                 label="First Name"
-                {...register('firstName')}
+                value={profileData?.firstName || ''}
                 fullWidth
                 margin="normal"
-                disabled={!isEditing}
+                disabled
                 InputLabelProps={{
                   shrink: true,
                 }}
               />
               <TextField
                 label="Last Name"
-                {...register('lastName')}
+                value={profileData?.lastName || ''}
                 fullWidth
                 margin="normal"
-                disabled={!isEditing}
+                disabled
                 InputLabelProps={{
                   shrink: true,
                 }}
@@ -457,72 +585,22 @@ const Settings = () => {
               <TextField
                 label="Email"
                 type="email"
-                {...register('email')}
+                value={profileData?.email || ''}
                 fullWidth
                 margin="normal"
                 disabled
               />
-              
-              {isEditing ? (
-                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                  <Button 
-                    type="button" 
-                    variant="outlined" 
-                    onClick={handleCancelEdit}
-                    sx={{
-                      borderRadius: '12px',
-                      textTransform: 'none',
-                      padding: '8px 24px',
-                      borderColor: 'rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                      '&:hover': {
-                        borderColor: 'rgba(255, 255, 255, 0.4)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                      }
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    variant="contained" 
-                    color="primary" 
-                    sx={{
-                      borderRadius: '12px',
-                      textTransform: 'none',
-                      padding: '8px 24px',
-                      background: 'linear-gradient(135deg, var(--theme-color) 0%, #9a4dff 100%)',
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 6px 25px rgba(110, 72, 170, 0.5)'
-                      }
-                    }}
-                  >
-                    Save Changes
-                  </Button>
-                </div>
-              ) : (
-                <Button 
-                  type="button"
-                  variant="outlined"
-                  onClick={handleEditClick}
-                  sx={{
-                    marginTop: '20px',
-                    borderRadius: '12px',
-                    textTransform: 'none',
-                    padding: '8px 24px',
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    '&:hover': {
-                      borderColor: 'var(--theme-color)',
-                      backgroundColor: 'rgba(110, 72, 170, 0.1)'
-                    }
-                  }}
-                >
-                  Edit Profile
-                </Button>
-              )}
-            </form>
+              <TextField
+                label="ID Number"
+                value={profileData?.idNumber || ''}
+                fullWidth
+                margin="normal"
+                disabled
+                InputLabelProps={{
+                  shrink: true,
+                }}
+              />
+            </div>
           </div>
         );
       case 'security':
@@ -645,11 +723,18 @@ const Settings = () => {
       
       case 'settings':
         return (
-          <div className="settings-tab">
+          <div className="settings-container">
+            <div className="settings-header">
+              <Typography variant="h4" className="settings-title">
+                Account Settings
+              </Typography>
+            </div>
+            
             <div className="settings-section">
               <Typography variant="h6" className="section-title">
-                <SecurityIcon /> Account Security
+                <SecurityIcon /> Security
               </Typography>
+              
               <div className="setting-item">
                 <div className="setting-text">
                   <Typography>Two-Factor Authentication</Typography>
@@ -665,6 +750,7 @@ const Settings = () => {
                   color="primary" 
                 />
               </div>
+              
               <div className="setting-item">
                 <div className="setting-text">
                   <Typography>Login Notifications</Typography>
@@ -692,6 +778,28 @@ const Settings = () => {
                   <Typography variant="caption">Receive updates via email</Typography>
                 </div>
                 <Switch defaultChecked color="primary" />
+              </div>
+            </div>
+            
+            <div className="settings-section danger-zone">
+              <Typography variant="h6" className="section-title" style={{ color: '#f44336' }}>
+                <ErrorOutlineIcon /> Danger Zone
+              </Typography>
+              <div className="setting-item">
+                <div className="setting-text">
+                  <Typography>Delete Account</Typography>
+                  <Typography variant="caption" color="error">
+                    Permanently delete your account and all associated data
+                  </Typography>
+                </div>
+                <Button 
+                  variant="outlined" 
+                  color="error"
+                  startIcon={<DeleteForeverIcon />}
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  Delete Account
+                </Button>
               </div>
             </div>
           </div>
@@ -755,33 +863,78 @@ const Settings = () => {
       <div className="header-actions">
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <IconButton
-            aria-label="more"
-            aria-controls="long-menu"
-            aria-haspopup="true"
-            onClick={handleMenuClick}
             className="menu-button"
+            onClick={handleMenuClick}
+            aria-label="settings"
+            aria-controls="settings-menu"
+            aria-haspopup="true"
           >
-            <MenuIcon />
+            <MenuIcon className="menu-icon" />
           </IconButton>
           <Menu
-            id="long-menu"
+            id="settings-menu"
             anchorEl={anchorEl}
             keepMounted
             open={Boolean(anchorEl)}
             onClose={handleMenuClose}
-            TransitionComponent={Fade}
+            className="settings-menu"
+            PaperProps={{
+              style: {
+                backgroundColor: '#1a1f2e',
+                color: 'white',
+                borderRadius: '12px',
+                padding: '8px 0',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                minWidth: '200px',
+              },
+            }}
           >
-            {['Profile', 'Settings', 'Activity'].map((option) => (
-              <MenuItem
-                key={option}
-                selected={option.toLowerCase() === activeTab}
-                onClick={() => handleOptionSelect(option.toLowerCase())}
-              >
-                {option}
-              </MenuItem>
-            ))}
+            <MenuItem 
+              onClick={() => handleOptionSelect('dashboard')}
+              sx={{
+                padding: '10px 16px',
+                '&:hover': {
+                  backgroundColor: 'rgba(110, 72, 170, 0.15)',
+                },
+              }}
+            >
+              <Box component="span" sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                <HomeIcon sx={{ mr: 1.5, color: '#6e48aa' }} />
+                <span>Go to Dashboard</span>
+              </Box>
+            </MenuItem>
+            <MenuItem 
+              onClick={() => handleOptionSelect('contact')}
+              sx={{
+                padding: '10px 16px',
+                '&:hover': {
+                  backgroundColor: 'rgba(110, 72, 170, 0.15)',
+                },
+              }}
+            >
+              <Box component="span" sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                <ContactSupportIcon sx={{ mr: 1.5, color: '#6e48aa' }} />
+                <span>Contact Us</span>
+              </Box>
+            </MenuItem>
+            <Divider sx={{ my: 0.5, bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
+            <MenuItem 
+              onClick={() => handleOptionSelect('delete-account')}
+              sx={{
+                padding: '10px 16px',
+                color: '#ff4d4f',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 77, 79, 0.1)',
+                },
+              }}
+            >
+              <Box component="span" sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                <DeleteForeverIcon sx={{ mr: 1.5 }} />
+                <span>Delete Account</span>
+              </Box>
+            </MenuItem>
           </Menu>
-          
           <Button 
             variant="outlined" 
             color="error" 
@@ -933,6 +1086,58 @@ const Settings = () => {
           {renderTabContent()}
         </div>
       </Slide>
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog 
+        open={deleteDialogOpen} 
+        onClose={() => setDeleteDialogOpen(false)}
+        aria-labelledby="delete-account-dialog"
+      >
+        <DialogTitle id="delete-account-dialog">
+          <ErrorOutlineIcon color="error" style={{ verticalAlign: 'middle', marginRight: 8 }} />
+          Delete Your Account
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText component="div">
+            <Typography color="error" paragraph>
+              <strong>Warning:</strong> This action cannot be undone. All your data will be permanently deleted.
+            </Typography>
+            <Typography paragraph>
+              To confirm, please enter your password to continue with account deletion.
+            </Typography>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="password"
+              label="Password"
+              type="password"
+              fullWidth
+              variant="outlined"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              error={!!deleteError}
+              helperText={deleteError}
+            />
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setDeleteDialogOpen(false);
+            setDeleteError('');
+            setPassword('');
+          }} color="primary">
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteAccount} 
+            color="error"
+            variant="contained"
+            disabled={!password.trim()}
+          >
+            Delete My Account
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

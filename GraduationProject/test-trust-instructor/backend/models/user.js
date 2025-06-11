@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   idNumber: { type: Number, unique: true },
   position: String,
   email: { type: String, unique: true },
-  password: String,
+  password: { type: String, select: true }, // Make password selectable for now
   twoFactorEnabled: { type: Boolean, default: false },
   twoFactorCode: { type: Number, default: null },
   twoFactorExpires: { type: Date, default: null },
@@ -15,6 +15,11 @@ const userSchema = new mongoose.Schema({
   resetPasswordOtp: String,
   resetOtpExpires: Date
 });
+
+// Simple password comparison (temporary - for development only)
+userSchema.methods.matchPassword = async function(enteredPassword) {
+  return this.password === enteredPassword;
+};
 
 const jwt = require('jsonwebtoken');
 

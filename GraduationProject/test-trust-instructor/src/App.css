@@ -61,6 +61,7 @@ html, body, #root, .App {
 }
 
 .nav-link {
+  position:flex;
   color: #BFDBF7;
   text-decoration: none;
   font-weight: 500;
@@ -68,6 +69,8 @@ html, body, #root, .App {
   border-radius: 4px;
   transition: all 0.3s ease;
   font-size: 1rem;
+  justify-content: center;
+  align-items: center;
 }
 
 .nav-link:hover {

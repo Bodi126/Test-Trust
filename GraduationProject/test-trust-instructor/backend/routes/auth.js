@@ -682,10 +682,31 @@ router.post('/verify-reset-otp', async (req, res) => {
   }
 });
 
+// In-memory token blacklist (in production, use Redis or similar)
+const tokenBlacklist = new Set();
+
+// Middleware to check if token is blacklisted
+const checkTokenBlacklist = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (token && tokenBlacklist.has(token)) {
+    return res.status(401).json({ success: false, message: 'Session expired. Please log in again.' });
+  }
+  next();
+};
+
+// Apply token blacklist check to all routes except auth routes
+router.use((req, res, next) => {
+  if (!req.path.startsWith('/api/auth')) {
+    return checkTokenBlacklist(req, res, next);
+  }
+  next();
+});
+
 // Delete account
 router.delete('/delete-account', async (req, res) => {
   try {
     const { email, password } = req.body;
+    const token = req.headers.authorization?.split(' ')[1];
     
     if (!email || !password) {
       return res.status(400).json({ 
@@ -728,12 +749,26 @@ router.delete('/delete-account', async (req, res) => {
         });
       }
 
+      // Blacklist the current token
+      if (token) {
+        tokenBlacklist.add(token);
+      }
+      
       // Delete user
       await User.findByIdAndDelete(user._id);
       
+      // Clear the token from client via HTTP-only cookie (if used)
+      res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/'
+      });
+      
       res.json({ 
         success: true,
-        message: 'Account deleted successfully' 
+        message: 'Account deleted successfully',
+        shouldLogout: true  // Signal client to clear local storage and redirect
       });
     } catch (error) {
       console.error('Password verification error:', error);

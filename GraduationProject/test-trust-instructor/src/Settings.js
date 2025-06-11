@@ -113,7 +113,8 @@ const Settings = () => {
         body: JSON.stringify({
           email: userEmail,
           password: password
-        })
+        }),
+        credentials: 'include' // Important for cookie-based sessions
       });
 
       const data = await response.json();
@@ -122,13 +123,26 @@ const Settings = () => {
         throw new Error(data.message || 'Failed to delete account');
       }
 
-      // Logout and redirect to home page
+      // Clear all auth-related data
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      navigate('/');
+      
+      // If using context or global state for auth, update it here
+      if (logout) {
+        logout();
+      }
+      
+      // Navigate to root path which should be handled by your router
+      // This assumes your App component is rendered at the root path '/'
+      window.location.href = '/';
+      // No need for reload() as href assignment will trigger a page load
+      
     } catch (error) {
       console.error('Delete account error:', error);
       setDeleteError(error.message || 'Failed to delete account. Please try again.');
+    } finally {
+      setDeleteDialogOpen(false);
+      setPassword('');
     }
   };
 

@@ -17,6 +17,7 @@ import ForgetPassword from './ForgetPassword';
 import ResetPassword from './ResetPassword';
 import Settings from './Settings';
 import TwoFactorAuth from './TwoFactorAuth';
+import ResultView from './ResultView';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -80,17 +81,10 @@ function App() {
             <li className="nav-item">
               {currentUser ? (
                 <li className="nav-item">
-                  <Link to="/settings" className="nav-link" style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '5px 0',
-                    borderRadius: '50%',
-                    transition: 'all 0.3s ease',
-                    position: 'relative'
-                  }}>
+                  <Link to="/settings" className="nav-link">
                     <div className="avatar-glow" style={{
                       width: '40px',
-                      height: '40px',
+                      height: '25px',
                       borderRadius: '50%',
                       display: 'flex',
                       alignItems: 'center',
@@ -191,6 +185,11 @@ function App() {
             <Route path="/two-factor-auth" element={
               <div className="main-content">
                 <TwoFactorAuth />
+              </div>
+            } />
+            <Route path="/results" element={
+              <div className="main-content">
+                <ResultView />
               </div>
             } />
 

@@ -63,8 +63,9 @@ const Settings = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  const [examCount, setExamCount] = useState(0);
+  const [latestExam, setLatestExam] = useState(null);
   
-  const examCount = allExams.length; // Calculate count from allExams array
   const navigate = useNavigate();
   const { register, reset, handleSubmit } = useForm();
   const { logout } = useContext(AuthContext);
@@ -72,6 +73,142 @@ const Settings = () => {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(currentUser?.twoFactorEnabled || false);
   const [loginNotificationsEnabled, setLoginNotificationsEnabled] = useState(currentUser?.loginNotificationsEnabled ?? true);
   
+  // Fetch user data and exams when component mounts
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        
+        if (!token || !currentUser?._id) {
+          console.log('No token or user ID, skipping data fetch');
+          return;
+        }
+
+        // First, fetch the latest user data to get the exam count
+        const userResponse = await fetch('http://localhost:5000/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          if (userData.examCount !== undefined) {
+            setExamCount(userData.examCount);
+            // Update the user data in localStorage
+            const updatedUser = { ...currentUser, examCount: userData.examCount };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            return; // Exit early if we got the count
+          }
+        }
+
+        // Fallback to fetching exams if we couldn't get the count from user data
+        console.log('Fetching user exams as fallback...');
+        const response = await fetch(`http://localhost:5000/api/exams/user/${currentUser._id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(responseData.message || 'Failed to fetch exams');
+        }
+
+        const exams = responseData.exams || [];
+        setAllExams(exams);
+        setExamCount(exams.length);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error.message || 'Failed to load data. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [currentUser?._id]);
+
+  // Fetch user's exams - matches Dashboard's implementation
+  const fetchExams = async () => {
+    try {
+      console.log('[Settings] Starting to fetch exams...');
+      setLoading(true);
+      setError(null);
+      
+      const userEmail = localStorage.getItem('userEmail') || currentUser?.email;
+      console.log('[Settings] Using email:', userEmail);
+      
+      if (!userEmail) {
+        const errorMsg = 'User not logged in';
+        console.error('[Settings]', errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      const token = localStorage.getItem('token');
+      console.log('[Settings] Token exists:', !!token);
+      
+      if (!token) {
+        const errorMsg = 'No authentication token found';
+        console.error('[Settings]', errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      console.log('[Settings] Making API request to fetch exams...');
+      const response = await axios.get(
+        `http://localhost:5000/api/auth/my-exams`,
+        { 
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000
+        }
+      );
+      
+      console.log('[Settings] API Response:', {
+        status: response.status,
+        data: response.data ? 'Data received' : 'No data',
+        count: response.data?.length || 0
+      });
+      
+      if (response.data && response.data.length > 0) {
+        setAllExams(response.data);
+        setExamCount(response.data.length);
+        
+        // Sort exams by creation date and get the most recent one
+        const sortedExams = [...response.data].sort((a, b) => 
+          new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        setLatestExam(sortedExams[0]);
+      } else {
+        setAllExams([]);
+        setExamCount(0);
+        setLatestExam(null);
+      }
+      
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to load exams';
+      console.error('[Settings] Error fetching exams:', {
+        error: errorMsg,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      setError(`Error: ${errorMsg}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch exams when component mounts or user changes
+  useEffect(() => {
+    fetchExams();
+  }, [currentUser?._id]);
+
   // Sync 2FA state with user data on component mount and when currentUser changes
   useEffect(() => {
     if (currentUser) {
@@ -343,80 +480,6 @@ const Settings = () => {
       <Divider variant="inset" component="li" />
     </>
   );
-
-
-
-  // Fetch user's exams - matches Dashboard's implementation
-  const fetchExams = async () => {
-    try {
-      console.log('[Settings] Starting to fetch exams...');
-      setLoading(true);
-      setError(null);
-      
-      const userEmail = localStorage.getItem('userEmail') || currentUser?.email;
-      console.log('[Settings] Using email:', userEmail);
-      
-      if (!userEmail) {
-        const errorMsg = 'User not logged in';
-        console.error('[Settings]', errorMsg);
-        throw new Error(errorMsg);
-      }
-      
-      const token = localStorage.getItem('token');
-      console.log('[Settings] Token exists:', !!token);
-      
-      if (!token) {
-        const errorMsg = 'No authentication token found';
-        console.error('[Settings]', errorMsg);
-        throw new Error(errorMsg);
-      }
-      
-      console.log('[Settings] Making API request to fetch exams...');
-      const response = await axios.get(
-        `http://localhost:5000/api/auth/my-exams?user=${encodeURIComponent(userEmail)}`,
-        { 
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: 10000
-        }
-      );
-      
-      console.log('[Settings] API Response:', {
-        status: response.status,
-        data: response.data,
-        examsCount: response.data?.exams?.length || 0
-      });
-      
-      if (response.data && Array.isArray(response.data.exams)) {
-        console.log(`[Settings] Found ${response.data.exams.length} exams`);
-        setAllExams(response.data.exams);
-        console.log('[Settings] Updated allExams state:', response.data.exams);
-      } else {
-        const errorMsg = 'Unexpected response format: exams array not found';
-        console.error('[Settings]', errorMsg, response.data);
-        setError(errorMsg);
-        setAllExams([]);
-      }
-    } catch (err) {
-      const errorDetails = {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-        config: {
-          url: err.config?.url,
-          method: err.config?.method
-        }
-      };
-      console.error('[Settings] Error fetching exams:', errorDetails);
-      setError(err.response?.data?.message || err.message || 'Failed to load exams');
-      setAllExams([]);
-    } finally {
-      console.log('[Settings] Finished fetching exams, loading:', false);
-      setLoading(false);
-    }
-  };
 
   // Handle 2FA toggle
   const handleTwoFactorToggle = async (event) => {
@@ -923,22 +986,73 @@ const Settings = () => {
       case 'activity':
         return (
           <div className="activity-tab">
-            <Typography variant="h6" className="recent-activity-title">
+            <Typography variant="h6" className="recent-activity-title" sx={{ mb: 2 }}>
               Recent Activity
             </Typography>
             
             <List className="activity-list">
-              <ActivityItem 
-                icon={<CalendarTodayIcon />}
-                primary="Exam Scheduled"
-                secondary="Created final exam for CS101"
-                time="1 day ago"
-                success
-              />
+              {latestExam ? (
+                <Paper 
+                  elevation={2} 
+                  sx={{ 
+                    mb: 3, 
+                    p: 2, 
+                    borderRadius: 2, 
+                    background: 'rgba(110, 72, 170, 0.1)',
+                    borderLeft: '4px solid #6e48aa'
+                  }}
+                >
+                  <Box display="flex" alignItems="center" mb={1}>
+                    <CalendarTodayIcon color="primary" sx={{ mr: 1.5 }} />
+                    <Typography variant="subtitle1" fontWeight={500}>
+                      Latest Exam Created
+                    </Typography>
+                  </Box>
+                  <Box pl={4}>
+                    <Typography variant="body1">
+                      <strong>Subject:</strong> {latestExam.subject || 'N/A'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Year:</strong> {latestExam.year || 'N/A'}
+                    </Typography>
+                    {latestExam.department && (
+                      <Typography variant="body2" color="text.secondary">
+                        <strong>Department:</strong> {latestExam.department}
+                      </Typography>
+                    )}
+                    <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                      Created on: {latestExam.createdAt ? new Date(latestExam.createdAt).toLocaleDateString() : 'N/A'}
+                    </Typography>
+                  </Box>
+                </Paper>
+              ) : (
+                <Paper 
+                  elevation={0} 
+                  sx={{ 
+                    p: 3, 
+                    textAlign: 'center',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: 2,
+                    mb: 3
+                  }}
+                >
+                  <CalendarTodayIcon color="disabled" sx={{ fontSize: 40, mb: 1 }} />
+                  <Typography variant="body1" color="text.secondary">
+                    No exams found
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Create your first exam to see activity here
+                  </Typography>
+                </Paper>
+              )}
+
+              <Typography variant="subtitle2" sx={{ mb: 1, color: 'rgba(255, 255, 255, 0.7)' }}>
+                Quick Stats
+              </Typography>
               <div className="activity-stats">
                 <div className="stat-card">
                   <Typography variant="h4">{examCount}</Typography>
-                  <Typography variant="caption">Exams</Typography>
+                  <Typography variant="caption">Total Exams</Typography>
                 </div>
                 <div className="stat-card">
                   <Typography variant="h4">0</Typography>
@@ -1084,41 +1198,166 @@ const Settings = () => {
         </div>
       </div>
 
-      <Dialog open={contactOpen} onClose={() => setContactOpen(false)} className="contact-dialog">
-        <DialogTitle className="contact-dialog-title">Contact Support</DialogTitle>
-        <DialogContent className="contact-dialog-content">
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Your Email"
-            type="email"
-            fullWidth
-            variant="outlined"
-            value={contactEmail}
-            onChange={(e) => setContactEmail(e.target.value)}
-            className="contact-input"
-          />
-          <TextField
-            margin="dense"
-            label="Your Message"
-            type="text"
-            fullWidth
-            variant="outlined"
-            multiline
-            rows={4}
-            value={contactMessage}
-            onChange={(e) => setContactMessage(e.target.value)}
-            className="contact-input"
-          />
-        </DialogContent>
-        <DialogActions className="contact-dialog-actions">
-          <Button onClick={() => setContactOpen(false)} className="contact-cancel-btn">
-            Cancel
-          </Button>
-          <Button onClick={handleContactSubmit} className="contact-submit-btn">
-            Send Message
-          </Button>
-        </DialogActions>
+      <Dialog 
+        open={contactOpen} 
+        onClose={() => setContactOpen(false)}
+        PaperProps={{
+          style: {
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '500px',
+            background: 'linear-gradient(145deg, #1a1f2e 0%, #0f121b 100%)',
+            border: '1px solid rgba(110, 72, 170, 0.2)',
+            boxShadow: '0 8px 32px 0 rgba(110, 72, 170, 0.1)'
+          }
+        }}
+      >
+        <Box sx={{ p: 3 }}>
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '64px',
+            height: '64px',
+            margin: '0 auto 16px',
+            borderRadius: '50%',
+            background: 'rgba(110, 72, 170, 0.1)',
+            color: '#6e48aa'
+          }}>
+            <ContactSupportIcon sx={{ fontSize: '32px' }} />
+          </Box>
+          
+          <Typography variant="h6" sx={{ 
+            fontWeight: 600, 
+            color: '#fff',
+            mb: 1.5,
+            textAlign: 'center',
+            fontSize: '1.5rem'
+          }}>
+            Contact Support
+          </Typography>
+          
+          <Typography variant="body2" sx={{ 
+            color: 'rgba(255, 255, 255, 0.7)',
+            textAlign: 'center',
+            mb: 3,
+            lineHeight: 1.6
+          }}>
+            Have questions or need assistance? Our team is here to help you with any inquiries.
+          </Typography>
+          
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              autoFocus
+              fullWidth
+              variant="outlined"
+              label="Your Email"
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              sx={{
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '8px',
+                  '& fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(110, 72, 170, 0.5)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#6e48aa',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'rgba(255, 255, 255, 0.7)',
+                },
+                '& .MuiInputBase-input': {
+                  color: '#fff',
+                },
+              }}
+            />
+            
+            <TextField
+              fullWidth
+              variant="outlined"
+              label="Your Message"
+              multiline
+              rows={5}
+              value={contactMessage}
+              onChange={(e) => setContactMessage(e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '8px',
+                  '& fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(110, 72, 170, 0.5)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#6e48aa',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'rgba(255, 255, 255, 0.7)',
+                },
+                '& .MuiInputBase-input': {
+                  color: '#fff',
+                },
+              }}
+            />
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Button 
+              onClick={() => {
+                setContactOpen(false);
+                setContactEmail('');
+                setContactMessage('');
+              }}
+              sx={{
+                px: 3,
+                py: 1,
+                borderRadius: '8px',
+                textTransform: 'none',
+                fontWeight: 500,
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'rgba(255, 255, 255, 0.9)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                },
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleContactSubmit}
+              disabled={!contactEmail.trim() || !contactMessage.trim()}
+              sx={{
+                px: 3,
+                py: 1,
+                borderRadius: '8px',
+                textTransform: 'none',
+                fontWeight: 500,
+                backgroundColor: '#6e48aa',
+                color: '#fff',
+                '&:hover': {
+                  backgroundColor: '#5d3d9a',
+                  boxShadow: '0 4px 12px rgba(110, 72, 170, 0.3)',
+                },
+                '&.Mui-disabled': {
+                  backgroundColor: 'rgba(110, 72, 170, 0.3)',
+                  color: 'rgba(255, 255, 255, 0.5)',
+                },
+              }}
+            >
+              Send Message
+            </Button>
+          </Box>
+        </Box>
       </Dialog>
 
       <Slide direction="up" in={true} mountOnEnter unmountOnExit>
@@ -1207,51 +1446,157 @@ const Settings = () => {
         open={deleteDialogOpen} 
         onClose={() => setDeleteDialogOpen(false)}
         aria-labelledby="delete-account-dialog"
+        PaperProps={{
+          style: {
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '450px',
+            background: 'linear-gradient(145deg, #1a1f2e 0%, #0f121b 100%)',
+            border: '1px solid rgba(255, 77, 79, 0.2)',
+            boxShadow: '0 8px 32px 0 rgba(255, 77, 79, 0.1)'
+          }
+        }}
       >
-        <DialogTitle id="delete-account-dialog">
-          <ErrorOutlineIcon color="error" style={{ verticalAlign: 'middle', marginRight: 8 }} />
-          Delete Your Account
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText component="div">
-            <Typography color="error" paragraph>
-              <strong>Warning:</strong> This action cannot be undone. All your data will be permanently deleted.
+        <Box sx={{ p: 3, textAlign: 'center' }}>
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '64px',
+            height: '64px',
+            margin: '0 auto 16px',
+            borderRadius: '50%',
+            background: 'rgba(244, 67, 54, 0.1)',
+            color: '#f44336'
+          }}>
+            <ErrorOutlineIcon sx={{ fontSize: '32px' }} />
+          </Box>
+          
+          <Typography variant="h6" sx={{ 
+            fontWeight: 600, 
+            color: '#fff',
+            mb: 1.5,
+            fontSize: '1.5rem'
+          }}>
+            Delete Your Account?
+          </Typography>
+          
+          <Typography variant="body2" sx={{ 
+            color: 'rgba(255, 255, 255, 0.7)',
+            mb: 3,
+            lineHeight: 1.6
+          }}>
+            This will permanently delete your account and all associated data. 
+            <span style={{ color: '#f44336', fontWeight: 500 }}>This action cannot be undone.</span>
+          </Typography>
+          
+          <Box sx={{ 
+            p: 2, 
+            mb: 3,
+            borderRadius: '8px',
+            backgroundColor: 'rgba(255, 77, 79, 0.08)',
+            borderLeft: '3px solid #f44336',
+            textAlign: 'left'
+          }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontWeight: 500, mb: 1 }}>
+              <ErrorOutlineIcon sx={{ fontSize: '16px', verticalAlign: 'middle', mr: 0.5 }} />
+              What will be deleted:
             </Typography>
-            <Typography paragraph>
-              To confirm, please enter your password to continue with account deletion.
-            </Typography>
-            <TextField
-              autoFocus
-              margin="dense"
-              id="password"
-              label="Password"
-              type="password"
-              fullWidth
-              variant="outlined"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              error={!!deleteError}
-              helperText={deleteError}
-            />
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setDeleteDialogOpen(false);
-            setDeleteError('');
-            setPassword('');
-          }} color="primary">
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleDeleteAccount} 
-            color="error"
-            variant="contained"
-            disabled={!password.trim()}
-          >
-            Delete My Account
-          </Button>
-        </DialogActions>
+            <ul style={{ 
+              margin: '4px 0 0 0', 
+              paddingLeft: '24px',
+              color: 'rgba(255, 255, 255, 0.7)',
+              fontSize: '0.9rem',
+              lineHeight: 1.8
+            }}>
+              <li>Your profile information</li>
+              <li>All created exams and questions</li>
+              <li>Exam results and statistics</li>
+              <li>Account preferences and settings</li>
+            </ul>
+          </Box>
+          
+          <TextField
+            autoFocus
+            fullWidth
+            variant="outlined"
+            placeholder="Enter your password to confirm"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={!!deleteError}
+            helperText={deleteError}
+            sx={{
+              mb: 3,
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '8px',
+                '& fieldset': {
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'rgba(255, 77, 79, 0.5)',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#f44336',
+                },
+              },
+              '& .MuiInputBase-input': {
+                color: '#fff',
+                '&::placeholder': {
+                  color: 'rgba(255, 255, 255, 0.5)',
+                },
+              },
+            }}
+          />
+          
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Button 
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setDeleteError('');
+                setPassword('');
+              }}
+              sx={{
+                px: 3,
+                py: 1,
+                borderRadius: '8px',
+                textTransform: 'none',
+                fontWeight: 500,
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'rgba(255, 255, 255, 0.9)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                },
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleDeleteAccount}
+              disabled={!password.trim()}
+              sx={{
+                px: 3,
+                py: 1,
+                borderRadius: '8px',
+                textTransform: 'none',
+                fontWeight: 500,
+                backgroundColor: '#f44336',
+                color: '#fff',
+                '&:hover': {
+                  backgroundColor: '#d32f2f',
+                  boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
+                },
+                '&.Mui-disabled': {
+                  backgroundColor: 'rgba(244, 67, 54, 0.3)',
+                  color: 'rgba(255, 255, 255, 0.5)',
+                },
+              }}
+            >
+              Delete My Account
+            </Button>
+          </Box>
+        </Box>
       </Dialog>
     </div>
   );

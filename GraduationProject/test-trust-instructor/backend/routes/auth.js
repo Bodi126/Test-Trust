@@ -4,12 +4,13 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
-const ModelAnswer = require('../models/modelAnswer');
 const Exam = require('../models/exam');
+const ModelAnswer = require('../models/modelAnswer');
 const Question = require('../models/question');
 const stu_answer = require('../models/student_answer');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const auth = require('../middleware/auth');
 
 // Create a transporter using Gmail SMTP
 const transporter = nodemailer.createTransport({
@@ -236,6 +237,30 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     console.error('[LOGIN] Error:', err);
     res.status(500).json({ message: 'Login error', error: err });
+  }
+});
+
+// Get current user data
+router.get('/me', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({
+      _id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      position: user.position,
+      idNumber: user.idNumber,
+      examCount: user.examCount || 0,
+      twoFactorEnabled: user.twoFactorEnabled || false,
+      loginNotificationsEnabled: user.loginNotificationsEnabled !== undefined ? user.loginNotificationsEnabled : true
+    });
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -1037,10 +1062,16 @@ router.get('/exams/date/:date', async (req, res) => {
   }
 });
 
-
 router.post('/AddExam1', async (req, res) => {
   try {
-    const { examTime, examDate, subject, department, year, examDuration } = req.body;
+    const { examTime, examDate, subject, department, year, examDuration, userId, createdBy } = req.body;
+    
+    // Validate user ID is provided
+    if (!userId) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'User ID is required' });
+    }
 
     // Validate required fields
     if (!examTime || !examDate || !subject || !department || !year || !examDuration) {
@@ -1074,7 +1105,7 @@ router.post('/AddExam1', async (req, res) => {
 
       if (newExamStart < existingEnd && newExamEnd > existingStart) {
         return res.status(400).json({ 
-          message: 'Time conflict with another exam in ${department} department' 
+          message: `Time conflict with another exam in ${department} department` 
         });
       }
     }
@@ -1086,10 +1117,10 @@ router.post('/AddExam1', async (req, res) => {
     });
     if (existingSubjectExam) {
       return res.status(400).json({ 
-        message: '${subject} exam already exists for ${department} (Year ${year}) on this date' 
+        message: `${subject} exam already exists for ${department} (Year ${year}) on this date` 
       });
     }
-      // Create and save the new exam
+      // Create and save the new exam within transaction
       const newExam = new Exam({
         ...req.body,
         examDate: inputDate,
@@ -1097,21 +1128,29 @@ router.post('/AddExam1', async (req, res) => {
         examDuration: Number(req.body.examDuration),
         totalMarks: Number(req.body.totalMarks),
         questionCount: Number(req.body.questionCount),
-        createdBy: req.body.createdBy // Set the creator
-      });
-  
-      await newExam.save();
-  
-      res.status(201).json({ 
-        message: 'Exam created successfully',
-        examId: newExam._id 
+        createdBy: createdBy || userId,
+        status: 'scheduled'
       });
 
+      await newExam.save();
+
+      // Update user's exam count
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $inc: { examCount: 1 } },
+        { new: true }
+      );
+  
+      res.status(201).json({ 
+        message: 'Exam created successfully', 
+        examId: newExam._id,
+        examCount: updatedUser.examCount || 0
+      });
     } catch (err) {
       console.error('Exam creation error:', err);
       res.status(500).json({ 
-        message: 'Exam creation failed',
-        error: err.message 
+        message: 'Failed to create exam',
+        error: err.message
       });
     }
   });

@@ -62,12 +62,14 @@ const AddExam1 = () => {
     setIsSubmitting(true);
 
     try {
-      const userEmail = localStorage.getItem('userEmail');
-      if (!userEmail) {
-        setSubmitError('User email not found. Please log in again.');
+      // Get user data from localStorage
+      const userData = JSON.parse(localStorage.getItem('user'));
+      if (!userData || !userData._id) {
+        setSubmitError('User information not found. Please log in again.');
         setIsSubmitting(false);
         return;
       }
+      
       const examData = {
         department: values.department.trim(),
         year: values.year.trim(),
@@ -82,7 +84,8 @@ const AddExam1 = () => {
         archiveExam: values.archiveExam,
         status: 'draft',
         createdAt: new Date().toISOString(),
-        createdBy: userEmail // Set the creator from localStorage
+        createdBy: userData.email, // Use email from user data
+        userId: userData._id // Include user ID for exam count tracking
       };
 
       const response = await axios.post('http://localhost:5000/api/auth/AddExam1', examData);

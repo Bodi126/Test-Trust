@@ -14,7 +14,8 @@ const userSchema = new mongoose.Schema({
   resetPasswordToken: String,
   resetPasswordExpires: Date,
   resetPasswordOtp: String,
-  resetOtpExpires: Date
+  resetOtpExpires: Date,
+  examCount: { type: Number, default: 0 }
 });
 
 // Simple password comparison (temporary - for development only)
@@ -36,7 +37,8 @@ userSchema.methods.generateAuthToken = function (user) {
     position: userData.position,
     idNumber: userData.idNumber,
     twoFactorEnabled: userData.twoFactorEnabled,
-    loginNotificationsEnabled: userData.loginNotificationsEnabled
+    loginNotificationsEnabled: userData.loginNotificationsEnabled,
+    examCount: userData.examCount || 0
   };
   
   console.log('[AUTH] Generating token for user:', userData.email);

@@ -19,7 +19,7 @@ function Dashboard() {
   const [tooltip, setTooltip] = useState({ show: false, content: '', x: 0, y: 0 });
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [examReady, setExamReady] = useState(false);
-  
+  const [examCount, setExamCount] = useState(0);
 
   // Handle date change in the calendar
   const handleDateChange = (date) => {
@@ -34,26 +34,43 @@ function Dashboard() {
 
   const socket = io('http://localhost:5000');
 
-const handleTestMessage = () => {
-  socket.emit('test_message', 'Hello from Doctor 👨‍🏫');
-};
+  const handleTestMessage = () => {
+    socket.emit('test_message', 'Hello from Doctor 👨‍🏫');
+  };
 
   useEffect(() => {
-    const fetchExams = async () => {
+    const fetchUserData = async () => {
       try {
         setLoading(true);
         setError(null);
         const userEmail = localStorage.getItem('userEmail');
-        if (!userEmail) {
+        const token = localStorage.getItem('token');
+        
+        if (!userEmail || !token) {
           throw new Error('User not logged in');
         }
         
+        // Fetch user data to get exam count
+        const userResponse = await axios.get(
+          `http://localhost:5000/api/auth/me`,
+          { 
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        
+        if (userResponse.data && userResponse.data.examCount !== undefined) {
+          setExamCount(userResponse.data.examCount);
+        }
+        
+        // Fetch exams
         console.log('Fetching exams for user:', userEmail);
         const response = await axios.get(
           `http://localhost:5000/api/auth/my-exams?user=${encodeURIComponent(userEmail)}`,
           { 
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${token}`
             }
           }
         );
@@ -61,20 +78,24 @@ const handleTestMessage = () => {
         console.log('Exams data received:', response.data);
         if (response.data && Array.isArray(response.data.exams)) {
           setAllExams(response.data.exams);
+          // Only update exam count from exams if we didn't get it from user data
+          if (userResponse.data.examCount === undefined) {
+            setExamCount(response.data.exams.length);
+          }
         } else {
           console.error('Unexpected response format:', response.data);
           setError('Invalid response format from server');
         }
       } catch (err) {
-        console.error('Error fetching exams:', err);
-        setError(err.response?.data?.message || err.message || 'Failed to load exams');
+        console.error('Error fetching data:', err);
+        setError(err.response?.data?.message || err.message || 'Failed to load data');
       } finally {
         setLoading(false);
       }
     };
 
-  fetchExams();
-}, []);
+    fetchUserData();
+  }, []);
 
 
   // Helper function to normalize dates for comparison
@@ -85,13 +106,11 @@ const handleTestMessage = () => {
   };
 
   const handleStartExam = (exam) => {
-  socket.emit('start_exam', exam._id);
-  setExamData(exam);
-  setExamReady(true);
-  navigate(`/start-exam/${exam._id}`);
-};
-
-
+    socket.emit('start_exam', exam._id);
+    setExamData(exam);
+    setExamReady(true);
+    navigate(`/start-exam/${exam._id}`);
+  };
 
   // Filter exams for today
   const getTodaysExams = () => {
@@ -410,7 +429,7 @@ const handleTestMessage = () => {
         <div className="quick-stats">
           <div className="stat-card">
             <h4>Total Exams</h4>
-            <p className="stat-value">{allExams.length}</p>
+            <p className="stat-value">{examCount}</p>
           </div>
           <div className="stat-card">
             <h4>Active Students</h4>

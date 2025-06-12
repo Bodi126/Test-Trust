@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
   twoFactorEnabled: { type: Boolean, default: false },
   twoFactorCode: { type: Number, default: null },
   twoFactorExpires: { type: Date, default: null },
+  loginNotificationsEnabled: { type: Boolean, default: true },
   resetPasswordToken: String,
   resetPasswordExpires: Date,
   resetPasswordOtp: String,
@@ -34,7 +35,8 @@ userSchema.methods.generateAuthToken = function (user) {
     lastName: userData.lastName,
     position: userData.position,
     idNumber: userData.idNumber,
-    twoFactorEnabled: userData.twoFactorEnabled
+    twoFactorEnabled: userData.twoFactorEnabled,
+    loginNotificationsEnabled: userData.loginNotificationsEnabled
   };
   
   console.log('[AUTH] Generating token for user:', userData.email);

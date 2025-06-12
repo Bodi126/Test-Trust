@@ -71,8 +71,18 @@ function Login() {
           const { user, token } = response.data;
           console.log('[FRONTEND] Login successful for user:', user.email);
           
-          // Use the login function from AuthContext
-          login(user, token);
+          // Ensure loginNotificationsEnabled is included (default to true if not present)
+          const userWithNotifications = {
+            ...user,
+            loginNotificationsEnabled: user.loginNotificationsEnabled !== undefined 
+              ? user.loginNotificationsEnabled 
+              : true
+          };
+          
+          console.log('[FRONTEND] User data with notifications:', userWithNotifications);
+          
+          // Use the login function from AuthContext with the updated user data
+          login(userWithNotifications, token);
           
           // Clear any pending 2FA state
           localStorage.removeItem('pendingUser');

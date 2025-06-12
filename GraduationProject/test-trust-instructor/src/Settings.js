@@ -50,14 +50,12 @@ const Settings = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [activeTab, setActiveTab] = useState('profile');
   const [contactOpen, setContactOpen] = useState(false);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [allExams, setAllExams] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [twoFactorLoading, setTwoFactorLoading] = useState(false);
   const [twoFactorError, setTwoFactorError] = useState('');
   const [twoFactorSuccess, setTwoFactorSuccess] = useState('');
-  const [loginNotificationsEnabled, setLoginNotificationsEnabled] = useState(true);
   const [colorTheme, setColorTheme] = useState('#6e48aa');
   const [contactEmail, setContactEmail] = useState('');
   const [contactMessage, setContactMessage] = useState('');
@@ -71,6 +69,16 @@ const Settings = () => {
   const { register, reset, handleSubmit } = useForm();
   const { logout } = useContext(AuthContext);
   const currentUser = JSON.parse(localStorage.getItem('user'));
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(currentUser?.twoFactorEnabled || false);
+  const [loginNotificationsEnabled, setLoginNotificationsEnabled] = useState(currentUser?.loginNotificationsEnabled ?? true);
+  
+  // Sync 2FA state with user data on component mount and when currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      setTwoFactorEnabled(currentUser.twoFactorEnabled || false);
+      setLoginNotificationsEnabled(currentUser.loginNotificationsEnabled ?? true);
+    }
+  }, [currentUser]);
   
   const onSubmit = (data) => {
     console.log('Form submitted:', data);
@@ -200,8 +208,114 @@ const Settings = () => {
     }
   };
   
-  const handleLoginNotificationsToggle = (event) => {
-    setLoginNotificationsEnabled(event.target.checked);
+  const checkNotificationSettings = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
+      const response = await axios.get(
+        'http://localhost:5000/api/auth/debug/notification-settings',
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      console.log('Current notification settings:', response.data);
+      return response.data;
+      
+    } catch (error) {
+      console.error('Error checking notification settings:', error);
+      throw error;
+    }
+  };
+
+  const handleLoginNotificationsToggle = async (event) => {
+    const newValue = event.target.checked;
+    console.log('[FRONTEND] Toggling login notifications to:', newValue);
+    
+    try {
+      // Update UI immediately for better UX
+      setLoginNotificationsEnabled(newValue);
+      
+      // Get auth token
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
+      // Make API call to update preference
+      console.log('[FRONTEND] Sending update request to server...');
+      const response = await axios.post(
+        'http://localhost:5000/api/auth/update-login-notifications',
+        { enabled: newValue },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      console.log('[FRONTEND] Server response:', response.data);
+      
+      if (response.data.success) {
+        // Fetch the latest user data from the server to ensure consistency
+        const userResponse = await axios.get(
+          `http://localhost:5000/api/auth/user/${currentUser._id}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (userResponse.data) {
+          // Update local storage with the complete user data from the server
+          localStorage.setItem('user', JSON.stringify(userResponse.data));
+          // Update the current user state
+          setLoginNotificationsEnabled(userResponse.data.loginNotificationsEnabled);
+          
+          setTwoFactorSuccess(
+            `Login notifications ${userResponse.data.loginNotificationsEnabled ? 'enabled' : 'disabled'} successfully`
+          );
+        } else {
+          // Fallback to optimistic update if user fetch fails
+          const updatedUser = { ...currentUser, loginNotificationsEnabled: newValue };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          setTwoFactorSuccess(
+            `Login notifications ${newValue ? 'enabled' : 'disabled'} successfully`
+          );
+        }
+      } else {
+        // If server reports failure, revert the UI
+        setLoginNotificationsEnabled(!newValue);
+        setTwoFactorError(response.data.message || 'Failed to update preference');
+      }
+      
+    } catch (error) {
+      console.error('[FRONTEND] Error updating login notifications:', error);
+      
+      // Revert UI on error
+      setLoginNotificationsEnabled(!newValue);
+      
+      // Show error message
+      const errorMessage = error.response?.data?.message || 
+                          error.message || 
+                          'Failed to update login notifications';
+      setTwoFactorError(errorMessage);
+    } finally {
+      // Clear messages after 3 seconds
+      setTimeout(() => {
+        setTwoFactorSuccess('');
+        setTwoFactorError('');
+      }, 3000);
+    }
   };
   
   const ActivityItem = ({ icon, primary, secondary, time, success, star, warning }) => (
@@ -771,27 +885,14 @@ const Settings = () => {
                   <Typography variant="caption">
                     {loginNotificationsEnabled 
                       ? "Enabled - You'll receive email alerts for logins" 
-                      : "Get alerts for new logins"}
+                      : "Disabled - No login alerts will be sent"}
                   </Typography>
                 </div>
                 <Switch 
                   checked={loginNotificationsEnabled}
                   onChange={handleLoginNotificationsToggle}
-                  color="primary" 
+                  color="primary"
                 />
-              </div>
-            </div>
-
-            <div className="settings-section">
-              <Typography variant="h6" className="section-title">
-                <NotificationsIcon /> Notifications
-              </Typography>
-              <div className="setting-item">
-                <div className="setting-text">
-                  <Typography>Email Notifications</Typography>
-                  <Typography variant="caption">Receive updates via email</Typography>
-                </div>
-                <Switch defaultChecked color="primary" />
               </div>
             </div>
             

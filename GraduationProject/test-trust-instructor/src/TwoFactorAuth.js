@@ -101,9 +101,15 @@ const TwoFactorAuth = () => {
         // Save token and user data
         localStorage.setItem('token', response.data.token);
         
-        // Update user data with last login time
-        const userData = response.data.user || {};
-        userData.lastLogin = new Date().toISOString();
+        // Update user data with last login time and ensure loginNotificationsEnabled is included
+        const userData = {
+          ...response.data.user,
+          lastLogin: new Date().toISOString(),
+          // Ensure loginNotificationsEnabled is included (default to true if not present)
+          loginNotificationsEnabled: response.data.user.loginNotificationsEnabled !== undefined 
+            ? response.data.user.loginNotificationsEnabled 
+            : true
+        };
         
         console.log('[2FA] Saving user data:', userData);
         localStorage.setItem('user', JSON.stringify(userData));

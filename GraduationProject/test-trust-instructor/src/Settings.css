@@ -29,20 +29,27 @@
   --theme-color: #6e48aa;
   --theme-light: rgba(110, 72, 170, 0.2);
   --theme-lighter: rgba(110, 72, 170, 0.1);
+  --bg-gradient: linear-gradient(135deg, #1a1f2e 0%, #10141c 100%);
   
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  background-color: #293440 !important;
+  padding: 30px;
+  background: var(--bg-gradient) !important;
   color: #ffffff;
-  height: 700px;
-  width: 1300px;
+  height: 800px;
+  width: 1400px;
+  max-width: 95%;
+  margin: 20px auto;
   overflow: hidden;
   font-family: 'Inter', sans-serif;
   position: relative;
-  border-radius: 16px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  margin-bottom: 50px;
+  border-radius: 20px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-color) rgba(135, 43, 43, 0.1);
 }
 
 /* Floating Background Elements */
@@ -181,22 +188,100 @@
 }
 
 .tab-content {
+  --theme-color: #6e48aa;
+  --theme-light: rgba(110, 72, 170, 0.2);
+  --theme-lighter: rgba(110, 72, 170, 0.1);
+  --bg-gradient: linear-gradient(135deg, #1a1f2e 0%, #10141c 100%);
+  
   display: flex;
-  color:white;
   flex-direction: column;
-  height: calc(100% - 50px);
-  gap: 20px;
-  z-index: 1;
-  background:#022230 !important;
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
-  padding: 25px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  margin-bottom: 40px;
+  padding: 30px;
+  background: var(--bg-gradient) !important;
+  color: #ffffff;
+  height: 800px;
+  width: 1400px;
+  max-width: 95%;
+  margin: 20px auto;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  position: relative;
+  border-radius: 10px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--theme-color) rgba(135, 43, 43, 0.1);
+}
+
+.tab-content:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Activity Tab Specific Styles */
+.activity-tab {
+  --theme-color: #6e48aa;
+  --theme-light: rgba(110, 72, 170, 0.2);
+  --theme-lighter: rgba(110, 72, 170, 0.1);
+  --bg-gradient: linear-gradient(135deg, #1a1f2e 0%, #10141c 100%);
+  
+  display: flex;
+  flex-direction: column;
+  padding: 30px;
+  background: var(--bg-gradient) !important;
+  color: #ffffff;
+  height: 800px;
+  width: 1400px;
+  max-width: 95%;
+  margin: 20px auto;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  position: relative;
+  border-radius: 10px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+  overflow-y: auto;
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--theme-color) rgba(135, 43, 43, 0.1);
+}
+
+.activity-tab h3 {
+  color: white;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.activity-tab .MuiSvgIcon-root {
+  color: var(--theme-color);
+  font-size: 1.3rem;
+}
+
+/* Custom Scrollbar for Webkit */
+.tab-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tab-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.tab-content::-webkit-scrollbar-thumb {
+  background-color: var(--theme-color);
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.tab-content::-webkit-scrollbar-thumb:hover {
+  background-color: #8a5ac2;
 }
 
 /* Profile Content */
@@ -227,9 +312,8 @@
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(10px);
-  min-height: 250px;
-  max-height: 110px;
-  margin-bottom: 30px;
+  min-height: 270px;
+  margin-bottom: 10px;
 }
 
 /* Custom Scrollbar */
@@ -240,7 +324,7 @@
 .profile-header::-webkit-scrollbar-track {
   background: transparent;
   border-radius: 4px;
-  margin: 10px 0;
+  margin-bottom: 10px;
 }
 
 .profile-header::-webkit-scrollbar-thumb {
@@ -273,6 +357,7 @@
   z-index: 1;
   flex-shrink: 0;
   padding: 20px 0;
+  margin-bottom: 40px;
 }
 
 .avatar-glow {
@@ -583,12 +668,10 @@
 
 /* Settings Tab */
 .settings-tab {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  height: 100%;
   overflow-y: auto;
-  padding-right: 10px;
     scrollbar-width: thin;
   scrollbar-color: var(--theme-color) rgba(135, 43, 43, 0.1);
 }
@@ -657,8 +740,9 @@
   flex-grow: 1;
   overflow-y: auto;
   background: rgba(30, 30, 40, 0.5) !important;
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 0 !important;
+  height: 60px;
 }
 
 .activity-item {

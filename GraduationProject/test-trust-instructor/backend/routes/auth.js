@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const ModelAnswer = require('../models/modelAnswer');
 const Exam = require('../models/exam');
@@ -181,12 +182,39 @@ router.post('/login', async (req, res) => {
     const token = user.generateAuthToken();
     console.log(`[LOGIN] Success for email: ${email}`);
     
-    // Send login notification (fire and forget)
-    sendLoginNotification(user.email)
-      .then(sent => {
-        if (!sent) console.error(`[LOGIN] Failed to send notification to ${user.email}`);
-      })
-      .catch(err => console.error('[LOGIN] Notification error:', err));
+    // Debug log the user object with all relevant fields
+    console.log('[LOGIN] User object before notification check:', {
+      email: user.email,
+      loginNotificationsEnabled: user.loginNotificationsEnabled,
+      twoFactorEnabled: user.twoFactorEnabled,
+      _id: user._id,
+      timestamp: new Date().toISOString()
+    });
+
+    // Explicitly check if login notifications are enabled for this user
+    // Default to true only if the field is undefined (for backward compatibility)
+    const shouldSendNotification = user.loginNotificationsEnabled === undefined ? true : user.loginNotificationsEnabled;
+    
+    console.log(`[LOGIN] Login notifications ${shouldSendNotification ? 'ENABLED' : 'DISABLED'} for ${user.email}`);
+    
+    if (shouldSendNotification) {
+      console.log(`[LOGIN] Sending login notification to ${user.email}`);
+      
+      // Send login notification (fire and forget)
+      sendLoginNotification(user.email)
+        .then(sent => {
+          if (sent) {
+            console.log(`[LOGIN] Successfully sent notification to ${user.email}`);
+          } else {
+            console.error(`[LOGIN] Failed to send notification to ${user.email}`);
+          }
+        })
+        .catch(err => {
+          console.error('[LOGIN] Notification error:', err);
+        });
+    } else {
+      console.log(`[LOGIN] NOT sending notification to ${user.email} - notifications are disabled in user settings`);
+    }
     
     // Return the full user object with token for non-2FA login
     const userResponse = {
@@ -196,7 +224,8 @@ router.post('/login', async (req, res) => {
       lastName: user.lastName,
       position: user.position,
       idNumber: user.idNumber,
-      twoFactorEnabled: user.twoFactorEnabled
+      twoFactorEnabled: user.twoFactorEnabled,
+      loginNotificationsEnabled: user.loginNotificationsEnabled
     };
     
     res.status(200).json({ 
@@ -321,12 +350,27 @@ router.post('/verify-2fa', async (req, res) => {
     // Generate auth token with 2FA claim
     const token = user.generateAuthToken();
     
-    // Send login notification (fire and forget)
-    sendLoginNotification(user.email)
-      .then(sent => {
-        if (!sent) console.error(`[2FA] Failed to send notification to ${user.email}`);
-      })
-      .catch(err => console.error('[2FA] Notification error:', err));
+    // Check if login notifications are enabled for this user
+    const shouldSendNotification = user.loginNotificationsEnabled === undefined ? true : user.loginNotificationsEnabled;
+    
+    console.log(`[2FA] Login notifications ${shouldSendNotification ? 'ENABLED' : 'DISABLED'} for ${user.email}`);
+    
+    if (shouldSendNotification) {
+      // Send login notification (fire and forget)
+      sendLoginNotification(user.email)
+        .then(sent => {
+          if (sent) {
+            console.log(`[2FA] Successfully sent notification to ${user.email}`);
+          } else {
+            console.error(`[2FA] Failed to send notification to ${user.email}`);
+          }
+        })
+        .catch(err => {
+          console.error('[2FA] Notification error:', err);
+        });
+    } else {
+      console.log(`[2FA] NOT sending notification to ${user.email} - notifications are disabled in user settings`);
+    }
     
     // Set HTTP-only cookie with the token
     res.cookie('token', token, {
@@ -729,6 +773,120 @@ const checkTokenBlacklist = (req, res, next) => {
   }
   next();
 };
+
+// Update login notifications preference
+router.post('/update-login-notifications', async (req, res) => {
+  try {
+    console.log('[LOGIN NOTIFICATIONS] Update request received:', req.body);
+    
+    const { enabled } = req.body;
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      console.error('[LOGIN NOTIFICATIONS] No token provided');
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+    
+    try {
+      // Verify token and get user ID
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_jwt_secret');
+      console.log('[LOGIN NOTIFICATIONS] Decoded token:', decoded);
+      
+      const user = await User.findById(decoded._id); // Changed from decoded.userId to decoded._id
+      
+      if (!user) {
+        console.error('[LOGIN NOTIFICATIONS] User not found');
+        return res.status(404).json({ 
+          success: false,
+          message: 'User not found' 
+        });
+      }
+      
+      console.log('[LOGIN NOTIFICATIONS] Current user settings before update:', {
+        email: user.email,
+        loginNotificationsEnabled: user.loginNotificationsEnabled,
+        twoFactorEnabled: user.twoFactorEnabled
+      });
+      
+      // Update login notifications preference
+      user.loginNotificationsEnabled = enabled;
+      await user.save();
+      
+      console.log(`[LOGIN NOTIFICATIONS] Successfully updated preference for ${user.email} to:`, enabled);
+      
+      res.status(200).json({ 
+        success: true, 
+        message: 'Login notifications preference updated successfully',
+        loginNotificationsEnabled: user.loginNotificationsEnabled,
+        updatedAt: new Date().toISOString()
+      });
+      
+    } catch (tokenError) {
+      console.error('[LOGIN NOTIFICATIONS] Token verification failed:', tokenError);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired token',
+        error: tokenError.message
+      });
+    }
+  } catch (error) {
+    console.error('[LOGIN NOTIFICATIONS] Error updating preference:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update login notifications preference',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Get user by ID
+router.get('/user/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password -twoFactorCode -resetPasswordToken -resetPasswordOtp');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ message: 'Error fetching user data', error: error.message });
+  }
+});
+
+// Debug endpoint to check notification settings
+router.get('/debug/notification-settings', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('email loginNotificationsEnabled twoFactorEnabled');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.status(200).json({
+      email: user.email,
+      loginNotificationsEnabled: user.loginNotificationsEnabled,
+      twoFactorEnabled: user.twoFactorEnabled,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('[DEBUG] Error fetching notification settings:', error);
+    res.status(500).json({ 
+      message: 'Error fetching notification settings', 
+      error: error.message 
+    });
+  }
+});
 
 // Apply token blacklist check to all routes except auth routes
 router.use((req, res, next) => {

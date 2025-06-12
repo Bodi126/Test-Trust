@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import socket from './socket';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
+
 
 const UpcomingExams = () => {
   const [exam, setExam] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     const studentId = localStorage.getItem('studentId');
@@ -40,7 +45,7 @@ const UpcomingExams = () => {
 
     socket.on('start_exam', (examData) => {
     console.log('✅ Student received start_exam:', examData);
-    window.location.href = '/PracticeTests';
+    navigate('/PracticeTests'); 
   });
 
     return () => {

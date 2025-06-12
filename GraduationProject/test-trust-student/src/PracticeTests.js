@@ -27,14 +27,16 @@ const PracticeTests = () => {
 
     // Listen for start_exam signal
     socket.on('start_exam', async () => {
-      try {
-        const res = await axios.get('http://localhost:5000/api/questions/current');
-        setQuestions(res.data);
-        setExamStarted(true);
-      } catch (err) {
-        console.error('Error fetching questions:', err);
-      }
-    });
+  try {
+    const examId = localStorage.getItem('examId');
+    const res = await axios.get(`http://localhost:5000/api/byExam${examId}`);
+    console.log('✅ Questions fetched:', res.data);
+    setQuestions(res.data);
+    setExamStarted(true);
+  } catch (err) {
+    console.error('Error fetching questions:', err);
+  }
+});
 
     return () => {
       socket.off('start_exam');
@@ -107,7 +109,7 @@ const PracticeTests = () => {
     }
   };
 
-  if (!examStarted) return <div style={{ textAlign: 'center', marginTop: '100px' }}>في انتظار بدء الامتحان...</div>;
+  if (!examStarted) return <div style={{ textAlign: 'center', marginTop: '100px' }}>Wating for the Exam....</div>;
 
   return (
     <div className="exam-container" style={{ padding: '2rem' }}>
@@ -116,7 +118,7 @@ const PracticeTests = () => {
         {renderQuestion(questions[currentIndex])}
       </div>
       <button onClick={handleNext} style={{ marginTop: '20px' }}>
-        {currentIndex + 1 === questions.length ? 'إنهاء وإرسال' : 'التالي'}
+        {currentIndex + 1 === questions.length ? 'Submit' : 'Next'}
       </button>
     </div>
   );

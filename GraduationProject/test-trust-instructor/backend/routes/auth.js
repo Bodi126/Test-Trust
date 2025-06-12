@@ -1563,7 +1563,6 @@ router.post('/api/student-answers', async (req, res) => {
 });
 
 
-// جلب إجابة الطالب لامتحان معين
 router.get('/student-answers/:examId/:studentNationalId', async (req, res) => {
   const { examId, studentNationalId } = req.params;
   try {
@@ -1576,7 +1575,6 @@ router.get('/student-answers/:examId/:studentNationalId', async (req, res) => {
   }
 });
 
-// رفع نتيجة طالب بعد التصحيح (لو في مقالي)
 router.post('/results/submit', async (req, res) => {
   const { studentNationalId, examId, score } = req.body;
   try {
@@ -1588,8 +1586,7 @@ router.post('/results/submit', async (req, res) => {
   }
 });
 
-// route: GET /api/students/:nationalId
-router.get('/api/students/:nationalId', async (req, res) => {
+router.get('/students', async (req, res) => {
   try {
     const student = await Student.findOne({ nationalId: req.params.nationalId });
     if (!student) {
@@ -1601,6 +1598,28 @@ router.get('/api/students/:nationalId', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+
+
+router.get('/byExam/:examId', async (req, res) => {
+  const { examId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(examId)) {
+    return res.status(400).json({ message: 'Invalid exam ID format' });
+  }
+
+  try {
+    const questions = await Question.find({ examId }).sort({ number: 1 }); 
+    if (!questions.length) {
+      return res.status(404).json({ message: 'No questions found for this exam' });
+    }
+    res.json(questions);
+  } catch (err) {
+    console.error('Error fetching questions by exam:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 
 

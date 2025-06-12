@@ -77,7 +77,7 @@ const Login = () => {
       socket.emit('student_join', data.student._id);
       window.location.href = '/'; 
     } else {
-      alert(data.message || 'User does not exist');
+      alert(data.message || 'User does not exist??');
     }
   } catch (error) {
     console.error(error);

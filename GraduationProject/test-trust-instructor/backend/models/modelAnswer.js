@@ -12,4 +12,4 @@ const modelAnswerSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('ModelAnswer', modelAnswerSchema);
+module.exports = mongoose.model('ModelAnswer', modelAnswerSchema,'model_answer');

@@ -7,6 +7,7 @@ import Logo from './images/Logo.jpg';
 import AboutUs from './AboutUs';
 import DiveInto from './DiveInto';
 import UpcomingExams from './UpcomingExams';
+import PracticeTests from './PracticeTests';
 import Exam from './Exam'; 
 
 // Navbar Component
@@ -62,6 +63,8 @@ function App() {
           <Route path="/dive-into" element={<DiveInto />} />
           <Route path="/UpcomingExams" element={<UpcomingExams />} />
           <Route path="/Exam" element={<Exam />} /> 
+          <Route path="/PracticeTests" element={<PracticeTests />} /> 
+
         </Routes>
       </div>
     </Router>

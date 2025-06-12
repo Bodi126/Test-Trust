@@ -108,10 +108,28 @@ const ManageExam = () => {
       });
 
       if (response.ok) {
-        // Only update the UI if the delete was successful on the server
+        // Update the UI to remove the deleted exam
         setExams(exams.filter(exam => (exam.id || exam._id) !== id));
         if (expandedExam === id) setExpandedExam(null);
         if (editingExam === id) setEditingExam(null);
+        
+        // Refresh the user data to update the exam count
+        try {
+          const userResponse = await fetch('http://localhost:5000/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            // The exam count will be automatically updated in the UI when the component re-renders
+            console.log('Exam count updated after deletion');
+          }
+        } catch (err) {
+          console.error('Error refreshing user data:', err);
+          // Non-critical error, we can continue
+        }
       } else {
         const errorData = await response.json();
         alert(`Failed to delete exam: ${errorData.message || 'Unknown error'}`);

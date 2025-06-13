@@ -153,6 +153,7 @@ router.get('/exams-questions/:examId', async (req, res) => {
       _id: q._id,
       examId: q.examId,
       number: q.number,
+      examDuration: q.examDuration,
       type: q.type,
       question: q.question,
       choices: q.choices || [],

@@ -82,7 +82,7 @@ const ExamPage = () => {
     try {
       setSubmissionStatus('submitting');
       const payload = {
-        studentId: student?._id,
+        studentNationalId: student?.nationalId, 
         examId: examData?._id,
         answers: questions.map(q => ({
           questionId: q._id,
@@ -94,10 +94,10 @@ const ExamPage = () => {
         submittedAt: new Date().toISOString()
       };
 
-      await axios.post('http://localhost:5000/api/auth_stu/student_answer', payload);
+      await axios.post('http://localhost:5000/api/auth_stu/student-answers', payload);
       setSubmissionStatus('success');
       setTimeout(() => {
-        window.location.href = '/exam-completed';
+        window.location.href = '/App';
       }, 3000);
     } catch (error) {
       console.error('Error submitting answers:', error);
@@ -146,8 +146,8 @@ const ExamPage = () => {
 
         setQuestions(transformedQuestions);
         
-        if (examData.duration) {
-          setTimeLeft(examData.duration * 60);
+        if (examData.examDuration) {
+          setTimeLeft(examData.examDuration * 60);
         }
 
         setLoading(false);
@@ -341,7 +341,7 @@ const ExamPage = () => {
           <h2>{examData?.name || 'Exam'}</h2>
           <div className="student-info">
             <span>ID: {student?.nationalId}</span>
-            <span>Name: {student?.name}</span>
+            <span>Name: {student?.fullName}</span>
           </div>
         </div>
         

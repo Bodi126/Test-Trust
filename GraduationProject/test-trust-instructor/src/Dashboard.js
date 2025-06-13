@@ -35,7 +35,7 @@ function Dashboard() {
   const socket = io('http://localhost:5000');
 
   const handleTestMessage = () => {
-    socket.emit('test_message', 'Hello from Doctor 👨‍🏫');
+    socket.emit('test_message', 'Hello from Doctor ');
   };
 
   useEffect(() => {
@@ -106,11 +106,13 @@ function Dashboard() {
   };
 
   const handleStartExam = (exam) => {
-    socket.emit('start_exam', exam._id);
-    setExamData(exam);
-    setExamReady(true);
-    navigate(`/start-exam/${exam._id}`);
-  };
+  console.log("🚀 Starting exam with data:", exam);
+  socket.emit('start_exam', exam); 
+  setExamData(exam);
+  setExamReady(true);
+  navigate('/Dashboard');
+};
+
 
   // Filter exams for today
   const getTodaysExams = () => {

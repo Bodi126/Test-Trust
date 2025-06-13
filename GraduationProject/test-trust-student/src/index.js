@@ -6,7 +6,6 @@ import App from './App';
 import Login from './login';
 import SignUp from './signup';
 import reportWebVitals from './reportWebVitals';
-import UpcomingExams from './UpcomingExams';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import PracticeTests from './PracticeTests';
 import ExamPage from './ExamPage';

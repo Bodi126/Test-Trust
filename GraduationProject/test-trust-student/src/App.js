@@ -6,9 +6,8 @@ import SignupPage from './SignupPage';
 import Logo from './images/Logo.jpg';
 import AboutUs from './AboutUs';
 import DiveInto from './DiveInto';
-import UpcomingExams from './UpcomingExams';
 import PracticeTests from './PracticeTests';
-import Exam from './Exam'; 
+import ExamPage from './ExamPage'; 
 
 // Navbar Component
 const Navbar = () => {
@@ -37,7 +36,7 @@ const Navbar = () => {
               <button className="nav-link" onClick={handleLogout}>Logout</button>
             </div>
             <div style={{ marginTop: '20px' }}>
-        <Link to="/UpcomingExams" className="btn primary">
+        <Link to="/PracticeTests" className="btn primary">
           Upcoming Exams
         </Link>
       </div>
@@ -61,8 +60,7 @@ function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/dive-into" element={<DiveInto />} />
-          <Route path="/UpcomingExams" element={<UpcomingExams />} />
-          <Route path="/Exam" element={<Exam />} /> 
+          <Route path="/ExamPage" element={<ExamPage />} /> 
           <Route path="/PracticeTests" element={<PracticeTests />} /> 
 
         </Routes>

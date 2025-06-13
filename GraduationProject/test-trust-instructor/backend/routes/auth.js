@@ -1539,41 +1539,11 @@ router.get('/exams/date/:date', async (req, res) => {
   }
 });
 
-// route: GET /api/questions/:examId
-router.get('/api/questions/:examId', async (req, res) => {
-  try {
-    const questions = await Question.find({ examId: req.params.examId }).sort({ number: 1 });
-    res.json(questions);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
 
 
-// route: POST /api/student-answers
-router.post('/api/student-answers', async (req, res) => {
-  const { studentNationalId, examId, answers } = req.body;
-
-  try {
-    await StudentAnswer.create({ studentNationalId, examId, answers });
-    res.status(201).json({ message: 'Answers submitted successfully' });
-  } catch (err) {
-    res.status(500).json({ error: 'Error saving answers' });
-  }
-});
 
 
-router.get('/student-answers/:examId/:studentNationalId', async (req, res) => {
-  const { examId, studentNationalId } = req.params;
-  try {
-    const studentAnswer = await StudentAnswer.findOne({ examId, studentNationalId });
-    if (!studentAnswer) return res.status(404).json({ error: 'Answers not found' });
-    res.json(studentAnswer);
-  } catch (err) {
-    console.error('Error fetching student answers:', err);
-    res.status(500).json({ error: 'Failed to fetch student answers' });
-  }
-});
+
 
 router.post('/results/submit', async (req, res) => {
   const { studentNationalId, examId, score } = req.body;
@@ -1586,39 +1556,6 @@ router.post('/results/submit', async (req, res) => {
   }
 });
 
-router.get('/students', async (req, res) => {
-  try {
-    const student = await Student.findOne({ nationalId: req.params.nationalId });
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-    res.json(student);
-  } catch (err) {
-    console.error('Error fetching student:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-
-
-router.get('/byExam/:examId', async (req, res) => {
-  const { examId } = req.params;
-
-  if (!mongoose.Types.ObjectId.isValid(examId)) {
-    return res.status(400).json({ message: 'Invalid exam ID format' });
-  }
-
-  try {
-    const questions = await Question.find({ examId }).sort({ number: 1 }); 
-    if (!questions.length) {
-      return res.status(404).json({ message: 'No questions found for this exam' });
-    }
-    res.json(questions);
-  } catch (err) {
-    console.error('Error fetching questions by exam:', err);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
 
 
 

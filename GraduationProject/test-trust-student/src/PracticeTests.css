@@ -334,3 +334,63 @@
     flex-grow: 1;
   }
 }
+.exam-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.exam-card h3 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+.writing {
+  color: #3498db;
+}
+.today-exams {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.today-exams h2 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.exam-card {
+  background: white;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.exam-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: #3498db;
+}
+
+.start-exam-btn {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.start-exam-btn:hover {
+  background: #c0392b;
+}
+
+.loading-tests, .loading-exams {
+  text-align: center;
+  padding: 2rem;
+  color: #7f8c8d;
+}

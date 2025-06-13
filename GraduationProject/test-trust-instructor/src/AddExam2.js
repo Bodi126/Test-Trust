@@ -81,8 +81,21 @@ const AddExam2 = () => {
       type: questionType,
       question: questionText,
       autoCorrect: autoCorrection,
-      answer: answer || {}
+      answer: answer || {},
+      choices: []
     };
+
+    if (questionType === 'mcq') {
+  newQuestion.choices = [
+    answer.optionA,
+    answer.optionB,
+    answer.optionC,
+    answer.optionD
+  ];
+} else if (questionType === 'trueFalse') {
+  newQuestion.choices = ['True', 'False'];
+}
+
 
     const allQuestions = [...questions, newQuestion];
     

@@ -1,125 +1,225 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import socket from './socket';
 import axios from 'axios';
+import './PracticeTests.css';
 
 const PracticeTests = () => {
-  const [questions, setQuestions] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [examStarted, setExamStarted] = useState(false);
-  const [student, setStudent] = useState(null);
+  const [activeTab, setActiveTab] = useState('all');
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [todayExams, setTodayExams] = useState([]);
+  const [loadingExams, setLoadingExams] = useState(true);
+  const [loadingTests, setLoadingTests] = useState(true);
+  const [tests, setTests] = useState([]);
+  const navigate = useNavigate();
+
+  const subjects = [
+    { id: 'math', name: 'Mathematics', icon: '🧮', progress: 65 },
+    { id: 'science', name: 'Science', icon: '🔬', progress: 42 },
+    { id: 'literature', name: 'Literature', icon: '📚', progress: 78 },
+    { id: 'history', name: 'History', icon: '🏛️', progress: 53 },
+    { id: 'coding', name: 'Computer Science', icon: '💻', progress: 89 },
+  ];
 
   useEffect(() => {
-    const fetchStudentData = async () => {
-      const nationalId = localStorage.getItem('nationalId');
-      if (nationalId) {
-        try {
-          const res = await axios.get(`http://localhost:5000/api/students/${nationalId}`);
-          setStudent(res.data);
-          socket.emit('student_join', res.data._id);
-        } catch (err) {
-          console.error('Student fetch error:', err);
-        }
+    // Fetch today's exams
+    const fetchTodayExams = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/auth/alltoday_exams');
+        const exams = response.data.exams || response.data;
+        setTodayExams(Array.isArray(exams) ? exams : []);
+      } catch (error) {
+        console.error('Failed to load today exams:', error);
+        setTodayExams([]);
+      } finally {
+        setLoadingExams(false);
       }
     };
 
-    fetchStudentData();
+    // Fetch practice tests
+    const fetchPracticeTests = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/auth/practice-tests');
+        setTests(response.data || []);
+      } catch (error) {
+        console.error('Failed to load practice tests:', error);
+        setTests([]);
+      } finally {
+        setLoadingTests(false);
+      }
+    };
 
-    // Listen for start_exam signal
-    socket.on('start_exam', async () => {
-  try {
-    const examId = localStorage.getItem('examId');
-    const res = await axios.get(`http://localhost:5000/api/byExam${examId}`);
-    console.log('✅ Questions fetched:', res.data);
-    setQuestions(res.data);
-    setExamStarted(true);
-  } catch (err) {
-    console.error('Error fetching questions:', err);
-  }
-});
+    fetchTodayExams();
+    fetchPracticeTests();
+
+    // Socket setup
+    const studentId = localStorage.getItem('studentId');
+    if (studentId) {
+      socket.emit('student_join', studentId);
+    }
+
+    socket.on('start_exam', (examData) => {
+      if (examData) {
+        localStorage.setItem('examId', examData._id);
+        localStorage.setItem('examData', JSON.stringify(examData));
+        navigate('/ExamPage'); // Navigate to the exam page
+      }
+    });
 
     return () => {
       socket.off('start_exam');
     };
-  }, []);
+  }, [navigate]);
 
-  const handleAnswerChange = (e) => {
-    setAnswers({
-      ...answers,
-      [questions[currentIndex]._id]: e.target.value
+  // Combine practice tests and today's exams for the 'all' tab
+  const getAllTests = () => {
+    const combinedTests = [...tests];
+    
+    todayExams.forEach(exam => {
+      combinedTests.push({
+        id: exam._id,
+        title: exam.subject + ' Exam',
+        subject: exam.subject.toLowerCase(),
+        questions: exam.questionCount,
+        duration: exam.duration,
+        difficulty: 'Medium', // Default difficulty for exams
+        rating: '4.5', // Default rating for exams
+        taken: exam.participants || 0,
+        badge: 'Live',
+        isExam: true // Flag to identify exams
+      });
     });
+
+    return combinedTests;
   };
 
-  const handleNext = () => {
-    if (currentIndex + 1 < questions.length) {
-      setCurrentIndex(currentIndex + 1);
+  const filteredTests = () => {
+    if (activeTab === 'all') {
+      const allTests = getAllTests();
+      return selectedSubject 
+        ? allTests.filter(test => test.subject === selectedSubject)
+        : allTests;
     } else {
-      submitAnswers();
+      // For other tabs, only show practice tests
+      return selectedSubject 
+        ? tests.filter(test => test.subject === selectedSubject)
+        : tests;
     }
   };
 
-  const submitAnswers = async () => {
-    try {
-      const payload = {
-        nationalId: student?.nationalId,
-        examId: questions[0]?.examId,
-        answers: Object.entries(answers).map(([questionId, answer]) => ({
-          questionId,
-          answer
-        }))
-      };
-      await axios.post('http://localhost:5000/api/student_answer', payload);
-      alert('تم إرسال الإجابات بنجاح ✅');
-      setExamStarted(false);
-    } catch (err) {
-      console.error('Error submitting answers:', err);
-      alert('حدث خطأ أثناء إرسال الإجابات');
-    }
+  const startExam = (examId, isExam = false) => {
+    localStorage.setItem('examId', examId);
+    navigate(isExam ? '/exam' : `/practice-test/${examId}`);
   };
-
-  const renderQuestion = (q) => {
-    switch (q.type) {
-      case 'mcq':
-        return (
-          <>
-            <p>{q.question}</p>
-            <input type="text" placeholder="أدخل الإجابة (مثلاً: A أو B)" value={answers[q._id] || ''} onChange={handleAnswerChange} />
-          </>
-        );
-      case 'trueFalse':
-        return (
-          <>
-            <p>{q.question}</p>
-            <select value={answers[q._id] || ''} onChange={handleAnswerChange}>
-              <option value="">اختر</option>
-              <option value="true">True</option>
-              <option value="false">False</option>
-            </select>
-          </>
-        );
-      case 'written':
-        return (
-          <>
-            <p>{q.question}</p>
-            <textarea value={answers[q._id] || ''} onChange={handleAnswerChange} rows="4" />
-          </>
-        );
-      default:
-        return null;
-    }
-  };
-
-  if (!examStarted) return <div style={{ textAlign: 'center', marginTop: '100px' }}>Wating for the Exam....</div>;
 
   return (
-    <div className="exam-container" style={{ padding: '2rem' }}>
-      <h2>السؤال رقم {currentIndex + 1} من {questions.length}</h2>
-      <div className="question-box">
-        {renderQuestion(questions[currentIndex])}
+    <div className="practice-tests">
+      <div className="practice-header">
+        <h1>Practice Tests</h1>
+        <p>Sharpen your skills with our interactive practice exams</p>
       </div>
-      <button onClick={handleNext} style={{ marginTop: '20px' }}>
-        {currentIndex + 1 === questions.length ? 'Submit' : 'Next'}
-      </button>
+
+      <div className="practice-container">
+        <div className="subject-selector">
+          <h2>Subjects</h2>
+          <div className="subject-cards">
+            {subjects.map(subject => (
+              <div 
+                key={subject.id}
+                className={`subject-card ${selectedSubject === subject.id ? 'active' : ''}`}
+                onClick={() => setSelectedSubject(
+                  selectedSubject === subject.id ? null : subject.id
+                )}
+              >
+                <div className="subject-icon">{subject.icon}</div>
+                <h3>{subject.name}</h3>
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill"
+                    style={{ width: `${subject.progress}%` }}
+                  ></div>
+                </div>
+                <span className="progress-text">{subject.progress}% Mastery</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="test-browser">
+          <div className="test-filters">
+            <div className="filter-tabs">
+              <button 
+                className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+                onClick={() => setActiveTab('all')}
+              >
+                All Tests
+              </button>
+              <button 
+                className={`tab-btn ${activeTab === 'recent' ? 'active' : ''}`}
+                onClick={() => setActiveTab('recent')}
+              >
+                Recently Taken
+              </button>
+              <button 
+                className={`tab-btn ${activeTab === 'recommended' ? 'active' : ''}`}
+                onClick={() => setActiveTab('recommended')}
+              >
+                Recommended
+              </button>
+            </div>
+            <div className="search-box">
+              <input type="text" placeholder="Search tests..." />
+              <button>🔍</button>
+            </div>
+          </div>
+
+          {loadingTests ? (
+            <div className="loading-tests">Loading practice tests...</div>
+          ) : (
+            <div className="test-grid">
+              {filteredTests().map(test => (
+                <div key={test.id} className="test-card">
+                  {test.badge && <div className="test-badge">{test.badge}</div>}
+                  <div className="test-header">
+                    <h3>{test.title}</h3>
+                    <span className={`difficulty ${test.difficulty ? test.difficulty.toLowerCase() : 'medium'}`}>
+                      {test.difficulty || 'Medium'}
+                    </span>
+                  </div>
+                  <div className="test-meta">
+                    <span>📝 {test.questions} questions</span>
+                    <span>⏱️ {test.duration} mins</span>
+                    {test.rating && <span>⭐ {test.rating}</span>}
+                    <span>👥 {test.taken || 0} students</span>
+                  </div>
+                  <div className="test-actions">
+                  <p className='writing'>Waiting....</p>
+                    {!test.isExam && (
+                      <button className="preview-btn">
+                        Quick Preview
+                      </button>
+                    )}
+                  </div>
+                  {test.lastAttempt && (
+                    <div className="last-attempt">
+                      Last attempted: {test.lastAttempt}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="motivation-section">
+        <h2>Keep Going!</h2>
+        <p>You've completed 12 practice tests this month. Aim for 20 to earn the Gold Scholar badge!</p>
+        <div className="progress-tracker">
+          <div className="progress-fill" style={{ width: '60%' }}></div>
+          <span>12/20 tests</span>
+        </div>
+      </div>
     </div>
   );
 };

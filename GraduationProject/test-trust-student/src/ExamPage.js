@@ -1,52 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './ExamPage.css';
 import { FaFlag, FaCalculator, FaPalette, FaExpand, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import axios from 'axios';
 
 const ExamPage = () => {
-  // Sample questions array (replace with actual data)
-  const questions = [
-    {
-      id: 1,
-      text: "What is the primary purpose of a database index?",
-      choices: [
-        "To reduce disk space usage",
-        "To speed up data retrieval operations",
-        "To improve data security",
-        "To facilitate data backup processes"
-      ]
-    },
-    {
-      id: 2,
-      text: "Which SQL command is used to remove a table from the database?",
-      choices: [
-        "DELETE TABLE",
-        "REMOVE TABLE",
-        "DROP TABLE",
-        "ERASE TABLE"
-      ]
-    },
-    {
-      id: 3,
-      text: "In a relational database, what is a foreign key?",
-      choices: [
-        "A key that uniquely identifies each record in a table",
-        "A key used for encrypting sensitive data",
-        "A field that links to the primary key in another table",
-        "A special key used for administrative access"
-      ]
-    },
-    {
-      id: 4,
-      text: "What does ACID stand for in database transactions?",
-      choices: [
-        "Atomicity, Consistency, Isolation, Durability",
-        "Availability, Consistency, Integrity, Durability",
-        "Atomicity, Concurrency, Isolation, Durability",
-        "Access, Concurrency, Integrity, Durability"
-      ]
-    }
-  ];
-
+  // State declarations
+  const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(3600);
@@ -55,58 +14,16 @@ const ExamPage = () => {
   const [showCalculator, setShowCalculator] = useState(false);
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [student, setStudent] = useState(null);
+  const [examData, setExamData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [submissionStatus, setSubmissionStatus] = useState(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const whiteboardRef = useRef(null);
   
   const currentQuestion = questions[currentQuestionIndex];
 
-  // Navigation functions
-  const goToPreviousQuestion = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-    }
-  };
-
-  const goToNextQuestion = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  };
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Only handle navigation if no modal is open and no input is focused
-      if (!showExitWarning && !document.activeElement.matches('input, textarea, button')) {
-        if (e.key === 'ArrowLeft' && currentQuestionIndex > 0) {
-          e.preventDefault();
-          goToPreviousQuestion();
-        } else if (e.key === 'ArrowRight' && currentQuestionIndex < questions.length - 1) {
-          e.preventDefault();
-          goToNextQuestion();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentQuestionIndex, showExitWarning]);
-
-  // Format time helper
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Auto-submit handler
-  const handleAutoSubmit = () => {
-    console.log("Submitting exam...", answers);
-    // Actual submission logic would go here
-    window.removeEventListener('beforeunload', handleBeforeUnload);
-    window.close(); // Or navigate to results page
-  };
-
-  // Flag toggle function
+  // Function Definitions
   const toggleFlagQuestion = (questionId) => {
     setFlaggedQuestions(prev => {
       const newSet = new Set(prev);
@@ -119,23 +36,140 @@ const ExamPage = () => {
     });
   };
 
-  // Answer selection handler
-  const handleAnswerSelect = (optionIndex) => {
-    const questionId = questions[currentQuestionIndex].id;
-    
+  const goToPreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  const goToNextQuestion = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleAnswerSelect = (choiceIndex) => {
+    const questionId = currentQuestion._id;
     setAnswers(prev => ({
       ...prev,
       [questionId]: {
-        selected: optionIndex,
-        // Add other answer data if needed
+        selected: choiceIndex,
+        answerText: currentQuestion.choices[choiceIndex],
+        timestamp: new Date().toISOString()
       }
     }));
   };
 
-  // Timer and fullscreen effects
+  const handleWrittenAnswer = (e) => {
+    const questionId = currentQuestion._id;
+    setAnswers(prev => ({
+      ...prev,
+      [questionId]: {
+        selected: e.target.value,
+        answerText: e.target.value,
+        timestamp: new Date().toISOString()
+      }
+    }));
+  };
+
+  const submitAnswers = async () => {
+    try {
+      setSubmissionStatus('submitting');
+      const payload = {
+        studentId: student?._id,
+        examId: examData?._id,
+        answers: questions.map(q => ({
+          questionId: q._id,
+          questionText: q.question,
+          answer: answers[q._id]?.answerText || '',
+          isCorrect: false,
+          type: q.type
+        })),
+        submittedAt: new Date().toISOString()
+      };
+
+      await axios.post('http://localhost:5000/api/auth_stu/student_answer', payload);
+      setSubmissionStatus('success');
+      setTimeout(() => {
+        window.location.href = '/exam-completed';
+      }, 3000);
+    } catch (error) {
+      console.error('Error submitting answers:', error);
+      setSubmissionStatus('error');
+    }
+  };
+
+  const handleAutoSubmit = () => {
+    submitAnswers();
+  };
+
+  const toggleFullscreen = () => {
+    if (!isFullscreen) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
+  // Effects
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const nationalId = localStorage.getItem('nationalId');
+        const examDataString = localStorage.getItem('examData');
+        const examData = examDataString ? JSON.parse(examDataString) : null;
+        
+        if (!examData || !examData._id) {
+          throw new Error('Exam data not found');
+        }
+
+        setExamData(examData);
+
+        if (nationalId) {
+          const studentRes = await axios.get(`http://localhost:5000/api/auth_stu/students/${nationalId}`);
+          setStudent(studentRes.data);
+        }
+
+        const questionsRes = await axios.get(`http://localhost:5000/api/auth_stu/exams-questions/${examData._id}`);
+        const transformedQuestions = questionsRes.data.map(q => ({
+          ...q,
+          choices: q.type === 'mcq' ? q.choices || [] : []
+        }));
+
+        setQuestions(transformedQuestions);
+        
+        if (examData.duration) {
+          setTimeLeft(examData.duration * 60);
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft(prev => prev > 0 ? prev - 1 : 0);
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleAutoSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
 
     const handleFullscreenChange = () => {
@@ -150,30 +184,19 @@ const ExamPage = () => {
     };
   }, []);
 
-  const toggleFullscreen = () => {
-    if (!isFullscreen) {
-      document.documentElement.requestFullscreen().catch(err => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
-      });
-    } else {
-      document.exitFullscreen();
-    }
-  };
-
-  const handleBeforeUnload = (e) => {
-    if (!showExitWarning) {
-      e.preventDefault();
-      e.returnValue = '';
-      setShowExitWarning(true);
-    }
-  };
-
   useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (!showExitWarning) {
+        e.preventDefault();
+        e.returnValue = '';
+        setShowExitWarning(true);
+      }
+    };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [showExitWarning]);
 
-  // Whiteboard drawing functionality
   useEffect(() => {
     if (whiteboardRef.current && showWhiteboard) {
       const canvas = whiteboardRef.current;
@@ -225,6 +248,25 @@ const ExamPage = () => {
     }
   }, [showWhiteboard]);
 
+  // Render
+  if (loading) {
+    return <div className="loading">Loading exam questions...</div>;
+  }
+
+  if (!questions.length) {
+    return <div className="no-questions">No questions available for this exam.</div>;
+  }
+
+  if (submissionStatus === 'success') {
+    return (
+      <div className="submission-success">
+        <h2>Exam Submitted Successfully!</h2>
+        <p>Your answers have been recorded.</p>
+        <p>You will be redirected shortly...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="exam-page-container">
       {/* Exit Warning Modal */}
@@ -243,8 +285,50 @@ const ExamPage = () => {
               <button 
                 className="modal-btn confirm-btn"
                 onClick={handleAutoSubmit}
+                disabled={submissionStatus === 'submitting'}
               >
-                Submit & Exit
+                {submissionStatus === 'submitting' ? 'Submitting...' : 'Submit & Exit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submission Confirmation Modal */}
+      {showConfirmation && (
+        <div className="modal-overlay">
+          <div className="confirmation-modal">
+            <h3>Submit Your Exam?</h3>
+            <p>Are you sure you want to submit your exam? You won't be able to make changes after submission.</p>
+            
+            <div className="selected-answers-summary">
+              <h4>Your Answers:</h4>
+              <ul>
+                {questions.map((q, index) => (
+                  <li key={q._id}>
+                    Q{index + 1}: {answers[q._id]?.answerText 
+                      ? (q.type === 'written' 
+                          ? answers[q._id].answerText.substring(0, 50) + (answers[q._id].answerText.length > 50 ? '...' : '')
+                          : answers[q._id].answerText)
+                      : 'Not answered'}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            <div className="modal-buttons">
+              <button 
+                className="modal-btn cancel-btn"
+                onClick={() => setShowConfirmation(false)}
+              >
+                Review Answers
+              </button>
+              <button 
+                className="modal-btn confirm-btn"
+                onClick={submitAnswers}
+                disabled={submissionStatus === 'submitting'}
+              >
+                {submissionStatus === 'submitting' ? 'Submitting...' : 'Confirm Submission'}
               </button>
             </div>
           </div>
@@ -254,10 +338,10 @@ const ExamPage = () => {
       {/* Header */}
       <header className="exam-header">
         <div className="exam-title">
-          <h2>Database Systems Final Exam</h2>
+          <h2>{examData?.name || 'Exam'}</h2>
           <div className="student-info">
-            <span>ID: 2023001</span>
-            <span>Section: A</span>
+            <span>ID: {student?.nationalId}</span>
+            <span>Name: {student?.name}</span>
           </div>
         </div>
         
@@ -292,9 +376,10 @@ const ExamPage = () => {
           
           <button 
             className="submit-btn"
-            onClick={() => setShowExitWarning(true)}
+            onClick={() => setShowConfirmation(true)}
+            disabled={submissionStatus === 'submitting'}
           >
-            Submit Exam
+            {submissionStatus === 'submitting' ? 'Submitting...' : 'Submit Exam'}
           </button>
         </div>
       </header>
@@ -307,11 +392,11 @@ const ExamPage = () => {
           <div className="question-buttons">
             {questions.map((q, index) => (
               <button
-                key={q.id}
+                key={q._id}
                 className={`question-btn ${
-                  answers[q.id] ? 'answered' : ''
+                  answers[q._id] ? 'answered' : ''
                 } ${
-                  flaggedQuestions.has(q.id) ? 'flagged' : ''
+                  flaggedQuestions.has(q._id) ? 'flagged' : ''
                 } ${
                   currentQuestionIndex === index ? 'active' : ''
                 }`}
@@ -386,26 +471,33 @@ const ExamPage = () => {
           {/* Question Content */}
           <div className="question-content">
             <div className="question-meta">
-              <span className="question-number">Question {currentQuestionIndex + 1}</span>
+              <span className="question-number">Question {currentQuestion.number || currentQuestionIndex + 1}</span>
               <button 
-                className={`flag-btn ${flaggedQuestions.has(currentQuestion.id) ? 'flagged' : ''}`}
-                onClick={() => toggleFlagQuestion(currentQuestion.id)}
+                className={`flag-btn ${flaggedQuestions.has(currentQuestion._id) ? 'flagged' : ''}`}
+                onClick={() => toggleFlagQuestion(currentQuestion._id)}
               >
-                <FaFlag /> {flaggedQuestions.has(currentQuestion.id) ? 'Flagged' : 'Flag'}
+                <FaFlag /> {flaggedQuestions.has(currentQuestion._id) ? 'Flagged' : 'Flag'}
               </button>
             </div>
 
             <div className="question-text">
-              {currentQuestion.text}
+              {currentQuestion.question}
             </div>
+
+            {/* Current Selection Display */}
+            {answers[currentQuestion._id] && (
+              <div className="current-selection">
+                <strong>Your answer:</strong> {answers[currentQuestion._id].answerText}
+              </div>
+            )}
 
             {/* Answer Section */}
             <div className="answer-section">
-              {currentQuestion.choices.map((choice, index) => (
+              {currentQuestion.type === 'mcq' && currentQuestion.choices.map((choice, index) => (
                 <div 
-                  key={index} 
+                  key={index}
                   className={`answer-option ${
-                    answers[currentQuestion.id]?.selected === index ? 'selected' : ''
+                    answers[currentQuestion._id]?.selected === index ? 'selected' : ''
                   }`}
                   onClick={() => handleAnswerSelect(index)}
                 >
@@ -417,6 +509,16 @@ const ExamPage = () => {
                   </div>
                 </div>
               ))}
+
+              {currentQuestion.type === 'written' && (
+                <textarea
+                  className="written-answer"
+                  value={answers[currentQuestion._id]?.answerText || ''}
+                  onChange={handleWrittenAnswer}
+                  rows="5"
+                  placeholder="Type your answer here..."
+                />
+              )}
             </div>
 
             {/* Navigation Buttons */}
@@ -437,12 +539,13 @@ const ExamPage = () => {
               
               <button 
                 className={`nav-btn next-btn ${currentQuestionIndex === questions.length - 1 ? 'disabled' : ''}`}
-                onClick={goToNextQuestion}
-                disabled={currentQuestionIndex === questions.length - 1}
-                title="Next Question (→ Arrow Key)"
+                onClick={currentQuestionIndex === questions.length - 1 
+                  ? () => setShowConfirmation(true) 
+                  : goToNextQuestion}
+                title={currentQuestionIndex === questions.length - 1 ? "Submit Exam" : "Next Question (→ Arrow Key)"}
               >
-                Next
-                <FaChevronRight />
+                {currentQuestionIndex === questions.length - 1 ? 'Submit' : 'Next'}
+                {currentQuestionIndex === questions.length - 1 ? null : <FaChevronRight />}
               </button>
             </div>
           </div>

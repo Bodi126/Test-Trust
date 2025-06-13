@@ -5,7 +5,6 @@ import App from './App';
 import SignUp from './signup';
 import Logo from './images/Logo.jpg';
 import HomePage from './App';
-import UpcomingExams from './UpcomingExams';
 import { useNavigate } from 'react-router-dom';
 import socket from './socket'; 
 

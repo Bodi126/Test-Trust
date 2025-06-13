@@ -1,59 +1,94 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import App from './App';
-import Login from './login';
-import SignUp from './signup';
-import Logo from './images/Logo.jpg';
-import HomePage from './App';
+import TeamMember from './TeamMembers';
+import './AboutUs.css';
+import abdelrahmanImage from './assets/team-members/Abdelrahman.jpeg';
+import shahdImage from './assets/team-members/Shahd.jpeg';
+import hazemImage from './assets/team-members/Hazem.jpeg';
 
-
-const Navbar4 = () => {
-  return (
-    <nav className="navbar4">
-      <div className="nav-left">
-        <a href="/" className="nav-link">Home</a>
-        <a href="#dive-into" className="nav-link">Dive Into</a>
-        <a href="#about-us" className="nav-link">About Us</a>
-      </div>
-      <img src={Logo} alt="App Logo" className="logo" />
-      <div className="nav-right">
-        
-        <div className="auth-buttons">
-          <a href="/login" className="btn login-btn">Login</a>
-          <a href="/signup" className="btn signup-btn">Sign Up</a>
-        </div>
-      </div>
-    </nav>
-  );
-}; 
-
-
-function login4() {
-  return (
-    <Router>
-      <div className="login4">
-        <Navbar4 />
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
-          
-          {/* Other routes would go here */}
-        </Routes>
-      </div>
-    </Router>
-  );
-}
 const AboutUs = () => {
+  const teamMembers = [
+    {
+      id: 1,
+      name: 'Abdelrahman Sherif',
+      role: 'Project Lead',
+      image: abdelrahmanImage,
+      education: 'Information Communication Technology Networking track, NCTU',
+      experience: '10+ years in software development',
+      bio: 'Abdelrahman leads our team with expertise in software architecture and project management. He ensures our projects are delivered on time and meet the highest quality standards.',
+      github: 'https://github.com',
+      linkedin: 'https://linkedin.com',
+    },
+    {
+      id: 2,
+      name: 'Shahd Aboelkaramat',
+      role: 'Backend Developer, Database Administrator',
+      image: shahdImage,
+      education: 'Information Communication Technology Networking track, NCTU',
+      experience: '7 years in UX design',
+      bio: 'Shahd creates intuitive and beautiful user interfaces that delight our users while maintaining excellent usability standards.',
+      github: 'https://github.com',
+      instagram: 'https://instagram.com',
+    },
+    {
+      id: 3,
+      name: 'George Magdy',
+      role: 'IOT Engineer, AI Engineer',
+      image: 'https://randomuser.me/api/portraits/men/22.jpg',
+      education: 'Information Communication Technology Networking track, NCTU',
+      experience: '5 years with React ecosystem',
+      bio: 'George specializes in building responsive, performant frontends with modern React and TypeScript.',
+      github: 'https://github.com',
+      linkedin: 'https://linkedin.com',
+    },
+    {
+      id: 4,
+      name: 'Nour Tamer',
+      role: 'Server Developer, API Specialist',
+      image: 'https://randomuser.me/api/portraits/women/63.jpg',
+      education: 'MS Software Engineering, CMU',
+      experience: '6 years in backend systems',
+      bio: 'Nour builds robust, scalable backend services and APIs that power our applications.',
+      github: 'https://github.com',
+      linkedin: 'https://linkedin.com',
+    },
+    {
+      id: 5,
+      name: 'Youssef Yehia',
+      role: 'Frontend Developer, DevOps Engineer',
+      image: 'https://randomuser.me/api/portraits/men/75.jpg',
+      education: 'BS Information Technology, Georgia Tech',
+      experience: '4 years in cloud infrastructure',
+      bio: 'Youssef ensures our systems are reliable, scalable, and secure with modern DevOps practices.',
+      github: 'https://github.com',
+      linkedin: 'https://linkedin.com',
+    },
+    {
+      id: 6,
+      name: 'Hazem Ebrahim',
+      role: 'QA Specialist, Penetration tester',
+      image: hazemImage,
+      education: 'BS Computer Science, UW',
+      experience: '5 years in quality assurance',
+      bio: 'Hazem meticulously tests our software to ensure it meets our high quality standards before reaching users.',
+      github: 'https://github.com',
+      linkedin: 'https://linkedin.com',
+    }
+  ];
 
-return (
-
-<h1>About Page</h1>
-
-
-);
-
-} ;
+  return (
+    <div className="about-us-page">
+      <div className="about-header">
+        <h1>Meet Our Team</h1>
+        <p>The talented individuals behind our project</p>
+      </div>
+      
+      <div className="team-grid">
+        {teamMembers.map(member => (
+          <TeamMember key={member.id} member={member} />
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export default AboutUs;
-

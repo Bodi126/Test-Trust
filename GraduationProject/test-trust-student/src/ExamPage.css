@@ -496,3 +496,25 @@
 .confirm-btn:hover {
   background: #c0392b;
 }
+
+.loading, .no-questions {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+}
+
+.current-selection {
+  margin: 1rem 0;
+  padding: 0.5rem;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+}
+
+.written-answer {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 100px;
+}

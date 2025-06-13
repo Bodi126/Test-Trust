@@ -90,12 +90,16 @@ const AddExam1 = () => {
 
       const response = await axios.post('http://localhost:5000/api/auth/AddExam1', examData);
       
+      const examId = localStorage.getItem('examId');
+
       navigate('/AddExam2', { 
         state: { 
           examData: {
             ...examData,
             _id: response.data.examId
+            
           }
+         
         } 
       });
     } catch (error) {

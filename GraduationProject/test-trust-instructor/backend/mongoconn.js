@@ -53,9 +53,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('start_exam', () => {
-    console.log('🚀 Exam started');
-    io.emit('start_exam');
+  socket.on('start_exam', (examData) => {
+    console.log('🚀 Exam started:', examData );
+    io.emit('start_exam', examData); // Broadcast to all connected clients
   });
 
   socket.on('end_exam_for_student', (studentId) => {
@@ -74,7 +74,7 @@ io.on('connection', (socket) => {
 
 
 
-const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'];
 // CORS configuration - Allow all origins for development
 app.use(cors({
   origin: function (origin, callback) {

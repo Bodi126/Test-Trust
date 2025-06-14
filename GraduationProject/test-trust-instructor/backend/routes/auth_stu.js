@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Student = require('../models/student');
 const Question = require('../models/question');
+const StudentAnswer = require('../models/student_answer');
 const mongoose = require('mongoose');
 
 
@@ -103,17 +104,21 @@ router.get('/student-answers/:examId/:studentNationalId', async (req, res) => {
   }
 });
 
-// route: POST /api/student-answers
 router.post('/student-answers', async (req, res) => {
   const { studentNationalId, examId, answers } = req.body;
 
+  console.log('Received payload:', req.body); // اطبعي الباي لود
+
   try {
-    await StudentAnswer.create({ studentNationalId, examId, answers });
+    const saved = await StudentAnswer.create({ studentNationalId, examId, answers });
+    console.log('Saved entry:', saved);
     res.status(201).json({ message: 'Answers submitted successfully' });
   } catch (err) {
+    console.error('Saving Error:', err);
     res.status(500).json({ error: 'Error saving answers' });
   }
 });
+
 
 
 router.get('/exams-questions/:examId', async (req, res) => {

@@ -55,16 +55,35 @@ const ExamPage = () => {
   };
 
   const handleAnswerSelect = (choiceIndex) => {
-    const questionId = currentQuestion._id;
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: {
-        selected: choiceIndex,
-        answerText: currentQuestion.choices[choiceIndex],
-        timestamp: new Date().toISOString()
-      }
-    }));
-  };
+  const questionId = currentQuestion._id;
+  let answerValue;
+  let selectedValue;
+
+  switch(currentQuestion.type) {
+    case 'trueFalse':
+      answerValue = choiceIndex === 0 ? 'True' : 'False';
+      selectedValue = choiceIndex;
+      break;
+
+    case 'mcq':
+      answerValue = currentQuestion.choices[choiceIndex];
+      selectedValue = choiceIndex;
+      break;
+
+    default:
+      answerValue = '';
+      selectedValue = '';
+  }
+
+  setAnswers(prev => ({
+    ...prev,
+    [questionId]: {
+      selected: selectedValue,
+      answerText: answerValue, 
+      timestamp: new Date().toISOString()
+    }
+  }));
+};
 
   const handleWrittenAnswer = (e) => {
     const questionId = currentQuestion._id;
@@ -82,22 +101,19 @@ const ExamPage = () => {
     try {
       setSubmissionStatus('submitting');
       const payload = {
-        studentNationalId: student?.nationalId, 
-        examId: examData?._id,
-        answers: questions.map(q => ({
-          questionId: q._id,
-          questionText: q.question,
-          answer: answers[q._id]?.answerText || '',
-          isCorrect: false,
-          type: q.type
-        })),
-        submittedAt: new Date().toISOString()
-      };
+    studentNationalId: student?.nationalId, 
+    examId: examData?._id,
+    answers: questions.map(q => ({
+    questionId: q._id,
+    answer: answers[q._id]?.answerText ?? answers[q._id]?.selected ?? ''
+  }))
+};
+
 
       await axios.post('http://localhost:5000/api/auth_stu/student-answers', payload);
       setSubmissionStatus('success');
       setTimeout(() => {
-        window.location.href = '/App';
+        window.location.href = '/';
       }, 3000);
     } catch (error) {
       console.error('Error submitting answers:', error);
@@ -491,35 +507,56 @@ const ExamPage = () => {
               </div>
             )}
 
-            {/* Answer Section */}
-            <div className="answer-section">
-              {currentQuestion.type === 'mcq' && currentQuestion.choices.map((choice, index) => (
-                <div 
-                  key={index}
-                  className={`answer-option ${
-                    answers[currentQuestion._id]?.selected === index ? 'selected' : ''
-                  }`}
-                  onClick={() => handleAnswerSelect(index)}
-                >
-                  <div className="option-letter">
-                    {String.fromCharCode(65 + index)}.
-                  </div>
-                  <div className="option-text">
-                    {choice}
-                  </div>
-                </div>
-              ))}
+           {/* Answer Section */}
+<div className="answer-section">
+  {currentQuestion.type === 'mcq' && currentQuestion.choices.map((choice, index) => (
+    <div 
+      key={index}
+      className={`answer-option ${
+        answers[currentQuestion._id]?.selected === index ? 'selected' : ''
+      }`}
+      onClick={() => handleAnswerSelect(index)}
+    >
+      <div className="option-letter">
+        {String.fromCharCode(65 + index)}.
+      </div>
+      <div className="option-text">
+        {choice}
+      </div>
+    </div>
+  ))}
 
-              {currentQuestion.type === 'written' && (
-                <textarea
-                  className="written-answer"
-                  value={answers[currentQuestion._id]?.answerText || ''}
-                  onChange={handleWrittenAnswer}
-                  rows="5"
-                  placeholder="Type your answer here..."
-                />
-              )}
-            </div>
+  {currentQuestion.type === 'trueFalse' && (
+    <div className="true-false-options">
+      {['True', 'False'].map((option, index) => (
+        <div 
+          key={index}
+          className={`answer-option ${
+            answers[currentQuestion._id]?.selected === index ? 'selected' : ''
+          }`}
+          onClick={() => handleAnswerSelect(index)}
+        >
+          <div className="option-letter">
+            {String.fromCharCode(65 + index)}.
+          </div>
+          <div className="option-text">
+            {option}
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {currentQuestion.type === 'written' && (
+    <textarea
+      className="written-answer"
+      value={answers[currentQuestion._id]?.answerText || ''}
+      onChange={handleWrittenAnswer}
+      rows="5"
+      placeholder="Type your answer here..."
+    />
+  )}
+</div>
 
             {/* Navigation Buttons */}
             <div className="navigation-buttons">

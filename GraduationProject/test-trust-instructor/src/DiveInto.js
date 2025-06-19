@@ -22,7 +22,7 @@ const DiveInto = () => {
     {
       id: 0,
       title: "Secure Exam Platform",
-      description: "Military-grade security with live proctoring, AI cheating detection, and encrypted communication channels.",
+      description: "Highest level of security with Real-life monitoring, and encrypted communication channels.",
       icon: <FaShieldAlt className="feature-icon" />,
       color: "#4a6bff"
     },
@@ -36,7 +36,7 @@ const DiveInto = () => {
     {
       id: 2,
       title: "Automated Grading",
-      description: "Instant grading for objective questions with AI-assisted evaluation for essays and coding assessments.",
+      description: "Instant grading for objective questions, including multiple formats such as MCQ, True or False, and Written Questions.",
       icon: <FaRobot className="feature-icon" />,
       color: "#6bffb8"
     },

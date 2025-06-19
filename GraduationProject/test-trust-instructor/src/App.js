@@ -4,6 +4,7 @@ import { AuthContext } from './contexts/AuthContext';
 import AuthLink from './components/AuthLink';
 import Logo from './images/Logo.jpg';
 import './App.css';
+import ChatBot from './components/ChatBot';
 import AboutUs from './AboutUs';
 import Login from './login';
 import Signup from './signup';
@@ -202,6 +203,10 @@ function App() {
             <div className="shape shape-3"></div>
             <div className="shape shape-4"></div>
           </div>
+          
+          {/* ChatBot Component - Available on all pages */}
+          <ChatBot />
+          
         </div>
       </Router>
 

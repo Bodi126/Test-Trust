@@ -1404,10 +1404,6 @@ const Settings = () => {
                   <div className="stat-label">Exams</div>
                 </div>
                 <div className="stat-item">
-                  <div className="stat-value">0</div>
-                  <div className="stat-label">Rating</div>
-                </div>
-                <div className="stat-item">
                   <div className="stat-value">{calculateDaysWithApp().split(' ')[0]}</div>
                   <div className="stat-label">{calculateDaysWithApp().split(' ')[1]}</div>
                 </div>

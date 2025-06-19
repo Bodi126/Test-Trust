@@ -8,6 +8,7 @@ import AboutUs from './AboutUs';
 import DiveInto from './DiveInto';
 import PracticeTests from './PracticeTests';
 import ExamPage from './ExamPage';
+import ChatBot from './components/ChatBot/ChatBot';
 
 // Navbar Component
 const Navbar = () => {
@@ -132,6 +133,7 @@ const AppContent = () => {
         <Route path="/ExamPage" element={<ExamPage />} />
         <Route path="/PracticeTests" element={<PracticeTests />} />
       </Routes>
+      <ChatBot />
     </div>
   );
 };

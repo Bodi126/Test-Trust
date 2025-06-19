@@ -154,6 +154,7 @@ const ChatBot = () => {
           'Greetings! How can I help you with our testing platform today?'
         ]
       },
+      // Identify yourself
       {
         patterns: ['whats your name','who are you','identify yourself'],
         responses: ['I\'m Testy, your TestTrust assistant!']
@@ -166,16 +167,16 @@ const ChatBot = () => {
           'I\'m doing great! Ready to help you with anything related to Testy.'
         ]
       },
+      // What can you do
       {
         patterns: ['what can you do', 'what do you do', 'your purpose', 'what can i do with testy', 'what can i do with test trust', 'Who are you','what are you'],
         responses: [
-          'I can help you with all things TestTrust! I can assist with creating and managing exams, adding questions, viewing results, and answering any questions about the platform.',
-          'I\'m Testy your TestTrust assistant! I can guide you through exam creation, question management, result analysis, and explain any features of our platform, also im able to answer any questions you might have about the platform, programming languages, networking, cybersecurity, and more.',
+          'I can help you with all things TestTrust! I can assist with understanding the platform, answering questions related to the IT and CS fields, viewing results, and answering any questions about the platform.',
+          'I\'m Testy your TestTrust assistant! I can guide you through the platform, answer any questions you might have about the platform, programming languages, networking, cybersecurity, and more.',
           'I\'m Testy a Chatbot provided by TestTrust, i can answer any questions you might have about the platform, programming languages, networking, cybersecurity, and more.'
         ]
       },
-      
-
+      // Question types
       {
         patterns: ['question types', 'kinds of questions',],
         responses: [
@@ -183,7 +184,6 @@ const ChatBot = () => {
           'You can create different types of questions including multiple choice (single/multiple answers), true/false, short answers, essay questions, matching, and more.'
         ]
       },
-      
       // Results and Analytics
       {
         patterns: ['view results', 'check scores', 'exam results', 'see grades'],
@@ -192,6 +192,7 @@ const ChatBot = () => {
           'To check results: 1) Go to "Results" 2) Select an exam 3) View overall statistics or individual student performance 4) Export results if needed.'
         ]
       },
+      // Analytics
       {
         patterns: ['analytics', 'statistics', 'performance metrics'],
         responses: [
@@ -199,7 +200,6 @@ const ChatBot = () => {
           'Our analytics dashboard shows you detailed metrics about exam performance, including which questions were most challenging and how students performed across different topics.'
         ]
       },
-      
       // Account and Settings
       {
         patterns: ['change password', 'update password', 'reset password'],
@@ -215,7 +215,6 @@ const ChatBot = () => {
           'You can manage your profile settings, including personal information, notification preferences, and account security, in the Account Settings section.'
         ]
       },
-      
       // Technical Support
       {
         patterns: ['contact support', 'get help', 'technical issues', 'report problem'],
@@ -224,7 +223,6 @@ const ChatBot = () => {
           'Having trouble? Try refreshing the page first. If the issue continues, please contact our support team with details about the problem you\'re experiencing.'
         ]
       },
- 
       // General Education
       {
         patterns: ['best practices', 'creating good tests', 'effective exams'],
@@ -833,10 +831,17 @@ const ChatBot = () => {
       },
       
       {
-        patterns: ["what is TestTrust","what is TestTrust?","what is this","what is this?","what is this platform","what is this platform?","what is it","what is it?",'what is it for','what is it for?','what is it used for','what is it used for?','what is it used for?','what is it used for?', 'what is testtrust key features','what is test trust key features', 'what is test trust key features?','what are test trust key features?','what are testtrust key features?','what are test trust key features?'],
+        patterns: ["what is TestTrust", "what is TestTrust?", "what is this", "what is this?", "what is this platform", "what is this platform?" ,"what is it" ,"what is it?" ,'what is it for' ,'what is it for?' ,'what is it used for' ,'what is it used for?' ,'what is it used for?' ,'what is it used for?' ,'what is testtrust key features' ,'what is test trust key features', 'what is test trust key features?','what are test trust key features?','what are testtrust key features?','what are test trust key features?'],
         responses:["TestTrust is an examination platform that helps Instructors create and manage exams, including question banks for previous archived exams, exam scheduling, and student performance tracking."]
       },
-    
+      {
+        patterns:['how can i login', 'login', 'how can i get started'],
+        responses:['glad you ready to get started, please click on the student login button to get started and if you dont have an account then what are you waiting for click on the register button and join the family']
+      },
+      {
+        patterns:['how can i register', 'register', 'how can i get started','how can i create an account','create an account','how can i sign up','sign up'],
+        responses:['glad you ready to get started, please click on the register button to get create an account and join the family and if your already own an account then what are you waiting for click on the login button and get stright back to action']
+      }
     ];
 
     // Check for matches in knowledge base

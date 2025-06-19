@@ -174,7 +174,18 @@ const ChatBot = () => {
           'I\'m Testy a Chatbot provided by TestTrust, i can answer any questions you might have about the platform, programming languages, networking, cybersecurity, and more.'
         ]
       },
-      
+      {
+        patterns:['how can i get started', 'how can i register', 'how can i sign up', 'sign up', 'register'],
+        responses: [
+          'To get started with TestTrust, simply click on the "Join Us" button on our navigation bar. Fill in your details, and you\'re ready to go!, come on what are you waiting for join the family, and if you already have an account just click on the "Get Started" button and log in to get straight back to action'
+        ]
+      },
+      {
+        patterns:['how can i join again','how can i login','how can i log in','login','log in'],
+        responses:[
+          'To log in to TestTrust, simply click on the "Get Started" button on our navigation bar. Fill in your details, and you\'re ready to go!, come on what are you waiting for jump in, and if your unfortunatly dont have an account just click on the "Join Us" button sign up and join the family'
+        ]
+      },
       // Exam Management
       {
         patterns: ['create exam', 'make exam', 'new exam', 'how to create test'],

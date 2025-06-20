@@ -761,7 +761,7 @@ const ChatBot = () => {
       },
       // A03:2021 - Injection
       {
-        patterns: ['injection vulnerabilities', 'sql injection', 'command injection', 'owasp a03'],
+        patterns: ['injection vulnerabilities', 'command injection', 'owasp a03'],
         responses: [
           'Injection (OWASP A03:2021) occurs when untrusted data is sent to an interpreter as part of a command or query. Types: 1) SQL Injection 2) NoSQL Injection 3) Command Injection 4) LDAP Injection 5) XPath Injection 6) Server-Side Template Injection (SSTI).',
           'Preventing Injection: 1) Use parameterized queries 2) Use ORM frameworks 3) Input validation 4) Use safe APIs 5) Implement proper error handling 6) Use least privilege principle 7) Implement Web Application Firewall (WAF) 8) Regular security testing.'
@@ -772,8 +772,12 @@ const ChatBot = () => {
         patterns: ['insecure design', 'security by design', 'owasp a04', 'security design flaws'],
         responses: [
           'Insecure Design (OWASP A04:2021) focuses on risks related to design and architectural flaws. Examples: 1) Missing security controls 2) Insecure workflows 3) Lack of threat modeling 4) Insecure default configurations 5) Missing security requirements.',
-          'Preventing Insecure Design: 1) Implement secure design patterns 2) Use threat modeling 3) Define security requirements 4) Implement security by default 5) Use secure development lifecycle (SDLC) 6) Conduct design reviews 7) Implement proper error handling 8) Document security assumptions.'
         ]
+      },
+      {
+        patterns:['how to stop sql injection', 'prevent sql injection','mitigate sql injection'],
+        responses:['Preventing Insecure Design: 1) Implement secure design patterns 2) Use threat modeling 3) Define security requirements 4) Implement security by default 5) Use secure development lifecycle (SDLC) 6) Conduct design reviews 7) Implement proper error handling 8) Document security assumptions.'
+]
       },
       // A05:2021 - Security Misconfiguration
       {

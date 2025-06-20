@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Box, IconButton, TextField, Paper, Typography, CircularProgress } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import CloseIcon from '@mui/icons-material/Close';
@@ -33,7 +33,7 @@ const ChatBotContainer = styled('div')({
   position: 'fixed',
   bottom: '20px',
   right: '20px',
-  zIndex: 1000,
+  zIndex: 1300,
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'flex-end',
@@ -95,9 +95,16 @@ const ChatInput = styled('form')({
   padding: '10px',
   borderTop: '1px solid #e0e0e0',
   backgroundColor: 'white',
+  position: 'relative',
+  zIndex: 1,
 });
 
 const BotButton = styled(IconButton)({
+  position: 'fixed',
+  bottom: '20px',
+  right: '20px',
+  width: '60px',
+  height: '60px',
   backgroundColor: '#1976d2',
   color: 'white',
   '&:hover': {
@@ -105,13 +112,50 @@ const BotButton = styled(IconButton)({
   },
   animation: `${float} 3s ease-in-out infinite`,
   '&:hover': {
+    backgroundColor: '#1565c0',
     animation: `${bounce} 1s ease infinite`,
   },
 });
 
+const PopupNotification = ({ message, onClose }) => {
+  return (
+    <Box
+      sx={{
+        position: 'fixed',
+        bottom: '100px',
+        right: '30px',
+        backgroundColor: '#1976d2',
+        color: 'white',
+        padding: '12px 20px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        zIndex: 1302,
+        maxWidth: '250px',
+        animation: 'fadeIn 0.3s ease-in-out',
+        display: 'flex',
+        alignItems: 'center',
+        '&:hover': {
+          cursor: 'pointer',
+          backgroundColor: '#1565c0',
+        },
+        '@keyframes fadeIn': {
+          '0%': { opacity: 0, transform: 'translateY(10px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+      }}
+      onClick={onClose}
+    >
+      {message}
+    </Box>
+  );
+};
+
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
+  const popupTimeoutRef = useRef(null);
   const [messages, setMessages] = useState([
     { 
       text: "Hello there !, I'm Testy your TestTrust assistant. I can help you with navigating through our platform, helping you to learn something new, answering any questions you might have, and more. How can I assist you today?", 
@@ -123,6 +167,16 @@ const ChatBot = () => {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
+  const lastAutoMessageRef = useRef(Date.now());
+  
+  const autoGreetings = useMemo(() => [
+    "Need help with anything? I'm here to assist!",
+    "Hello! How's everything going today?",
+    "Is there anything I can help you with?",
+    "Hi there! Let me know if you need any help.",
+    "How's your day going? I'm here if you need me!",
+    "Need help with exams or questions? Just ask!"
+  ], []);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -139,6 +193,49 @@ const ChatBot = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+    // Auto greeting effect (10 seconds for testing)
+    useEffect(() => {
+      const checkAutoGreeting = () => {
+        const now = Date.now();
+        const tenSeconds = 30 * 60 * 1000; // 30 minutes in milliseconds
+        
+        // Show greeting if it's been at least 10 seconds since last message
+        if (now - lastAutoMessageRef.current >= tenSeconds) {
+          const randomGreeting = autoGreetings[Math.floor(Math.random() * autoGreetings.length)];
+          
+          if (isOpen) {
+            // If chat is open, add message to chat
+            const newMessage = {
+              text: randomGreeting,
+              sender: 'bot',
+              timestamp: new Date(),
+              isLoading: false
+            };
+            setMessages(prev => [...prev, newMessage]);
+          } else {
+            // If chat is closed, show popup
+            setPopupMessage(randomGreeting);
+            setShowPopup(true);
+            
+            // Auto-hide popup after 5 seconds
+            if (popupTimeoutRef.current) {
+              clearTimeout(popupTimeoutRef.current);
+            }
+            popupTimeoutRef.current = setTimeout(() => {
+              setShowPopup(false);
+            }, 5000);
+          }
+          
+          lastAutoMessageRef.current = now;
+        }
+      };
+      
+      // Check every second for testing (more responsive)
+      const interval = setInterval(checkAutoGreeting, 1000);
+      
+      return () => clearInterval(interval);
+    }, [isOpen, autoGreetings]);
 
   const getBotResponse = (userInput) => {
     const lowerInput = userInput.toLowerCase();
@@ -916,6 +1013,9 @@ const ChatBot = () => {
       }, 300); // Match this with the animation duration
     } else {
       setIsOpen(true);
+      setShowPopup(false); // Hide popup when opening chat
+      // Reset the timer when user opens the chat
+      lastAutoMessageRef.current = Date.now();
     }
   };
 
@@ -923,6 +1023,15 @@ const ChatBot = () => {
   const formatTime = (date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+      return () => {
+        if (popupTimeoutRef.current) {
+          clearTimeout(popupTimeoutRef.current);
+        }
+      };
+    }, []);
 
   return (
     <ChatBotContainer>
@@ -1015,6 +1124,12 @@ const ChatBot = () => {
             </IconButton>
           </ChatInput>
         </ChatWindow>
+      )}
+      {showPopup && (
+        <PopupNotification
+          message={popupMessage}
+          onClose={() => setShowPopup(false)}
+        />
       )}
       <BotButton 
         onClick={toggleChat}

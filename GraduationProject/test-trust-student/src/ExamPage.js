@@ -99,24 +99,101 @@ const ExamPage = () => {
 
   const submitAnswers = async () => {
     try {
+      console.log('Submit button clicked');
       setSubmissionStatus('submitting');
+      
+      // Debug: Log all localStorage items
+      console.log('All localStorage items:', { ...localStorage });
+      
+      const nationalId = localStorage.getItem('nationalId');
+      console.log('Retrieved nationalId from localStorage:', nationalId);
+      
+      if (!nationalId) {
+        const error = new Error('Student national ID not found in localStorage');
+        console.error(error.message, { localStorage: { ...localStorage } });
+        alert('Error: Student ID not found. Please log in again.');
+        setSubmissionStatus('error');
+        return;
+      }
+
+      if (!examData?._id) {
+        console.error('Exam ID is missing');
+        alert('Error: Exam data is missing. Please refresh the page and try again.');
+        setSubmissionStatus('error');
+        return;
+      }
+
       const payload = {
-    studentNationalId: student?.nationalId, 
-    examId: examData?._id,
-    answers: questions.map(q => ({
-    questionId: q._id,
-    answer: answers[q._id]?.answerText ?? answers[q._id]?.selected ?? ''
-  }))
-};
+        studentNationalId: nationalId, 
+        examId: examData._id,
+        answers: questions.map(q => ({
+          questionId: q._id,
+          answer: answers[q._id]?.answerText ?? answers[q._id]?.selected ?? ''
+        })).filter(a => a.answer !== '') // Only include answered questions
+      };
 
-
-      await axios.post('http://localhost:5000/api/auth_stu/student-answers', payload);
-      setSubmissionStatus('success');
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 3000);
+      console.log('Submitting answers with payload:', JSON.stringify(payload, null, 2));
+      
+      try {
+        console.log('Sending request to server with payload:', JSON.stringify(payload, null, 2));
+        
+        const response = await axios.post('http://localhost:5000/api/auth_stu/student-answers', payload, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          timeout: 10000 // 10 second timeout
+        });
+        
+        console.log('Server response:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: response.data
+        });
+        
+        if (response.status === 200 || response.status === 201) {
+          setSubmissionStatus('success');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+        } else {
+          throw new Error(`Unexpected status code: ${response.status}`);
+        }
+      } catch (error) {
+        const errorDetails = {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          response: error.response ? {
+            status: error.response.status,
+            statusText: error.response.statusText,
+            data: error.response.data
+          } : 'No response',
+          request: error.request ? 'Request was made but no response received' : 'No request was made'
+        };
+        
+        console.error('Error details:', JSON.stringify(errorDetails, null, 2));
+        
+        // More user-friendly error message
+        let errorMessage = 'Error submitting answers. ';
+        if (error.response) {
+          // Server responded with an error
+          errorMessage += `Server responded with status ${error.response.status}: `;
+          errorMessage += error.response.data?.error || error.response.data?.message || 'Unknown server error';
+        } else if (error.request) {
+          // Request was made but no response received
+          errorMessage += 'No response received from server. Please check your internet connection.';
+        } else {
+          // Something else happened
+          errorMessage += error.message || 'Unknown error occurred';
+        }
+        
+        alert(errorMessage);
+        setSubmissionStatus('error');
+      }
     } catch (error) {
-      console.error('Error submitting answers:', error);
+      console.error('Unexpected error:', error);
+      alert('An unexpected error occurred. Please check the console for details.');
       setSubmissionStatus('error');
     }
   };
@@ -139,7 +216,8 @@ const ExamPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const nationalId = localStorage.getItem('nationalId');
+        // Get student ID from localStorage (stored as 'studentId' during login)
+        const studentId = localStorage.getItem('studentId');
         const examDataString = localStorage.getItem('examData');
         const examData = examDataString ? JSON.parse(examDataString) : null;
         
@@ -149,9 +227,64 @@ const ExamPage = () => {
 
         setExamData(examData);
 
-        if (nationalId) {
-          const studentRes = await axios.get(`http://localhost:5000/api/auth_stu/students/${nationalId}`);
-          setStudent(studentRes.data);
+        if (studentId) {
+          console.log('Fetching student data for studentId:', studentId);
+          try {
+            // First get the student's data using their student ID
+            const studentRes = await axios.get(`http://localhost:5000/api/auth_stu/students/${studentId}`);
+            console.log('Full student data response:', JSON.stringify(studentRes.data, null, 2));
+            
+            if (!studentRes.data) {
+              throw new Error('No student data returned from server');
+            }
+            
+            const studentData = studentRes.data;
+            
+            // Log the national ID specifically
+            console.log('National ID from response:', studentData.nationalId);
+            
+            if (!studentData.nationalId) {
+              console.warn('No nationalId found in student data');
+              // Try to get national ID from localStorage as fallback
+              const storedNationalId = localStorage.getItem('nationalId');
+              if (storedNationalId) {
+                console.log('Using nationalId from localStorage:', storedNationalId);
+                studentData.nationalId = storedNationalId;
+              }
+            }
+            
+            // Store the national ID in localStorage for future use
+            if (studentData.nationalId) {
+              localStorage.setItem('nationalId', studentData.nationalId);
+            }
+            
+            // Set the student data in state
+            setStudent({
+              fullName: studentData.fullName || localStorage.getItem('studentName') || 'Unknown Student',
+              nationalId: studentData.nationalId || 'N/A',
+              ...studentData
+            });
+            
+            console.log('Student state after update:', {
+              fullName: studentData.fullName,
+              nationalId: studentData.nationalId
+            });
+          } catch (error) {
+            console.error('Error fetching student data:', {
+              message: error.message,
+              response: error.response?.data,
+              status: error.response?.status
+            });
+            
+            // Try to use any previously stored data
+            const storedNationalId = localStorage.getItem('nationalId');
+            console.log('Using fallback nationalId from localStorage:', storedNationalId);
+            
+            setStudent({ 
+              fullName: localStorage.getItem('studentName') || 'Unknown Student', 
+              nationalId: localStorage.getItem('nationalId')|| 'N/A'
+            });
+          }
         }
 
         const questionsRes = await axios.get(`http://localhost:5000/api/auth_stu/exams-questions/${examData._id}`);

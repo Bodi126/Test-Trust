@@ -7,18 +7,18 @@ import { useNavigate } from 'react-router-dom';
 const SignupPage = () => {
   const [formData, setFormData] = useState({
     fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
     nationalId: '',
     section: '',
     department: '',
     academicYear: '',
-    idPhoto: null,
-    fingerprintData: null
+    idPhoto: null
   });
 
   const [errors, setErrors] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
-  const [fingerprintStatus, setFingerprintStatus] = useState('not_registered');
-  const [scanning, setScanning] = useState(false);
   const fileInputRef = useRef(null);
 
   const validateForm = () => {
@@ -26,6 +26,22 @@ const SignupPage = () => {
     
     if (!formData.fullName.trim() || formData.fullName.split(' ').length < 4) {
       newErrors.fullName = 'Please enter your full name (up to fourth name)';
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters long';
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
     }
     
     if (!formData.nationalId.trim()) {
@@ -48,28 +64,8 @@ const SignupPage = () => {
       newErrors.idPhoto = 'ID photo is required';
     }
     
-    if (fingerprintStatus !== 'registered') {
-      newErrors.fingerprint = 'Fingerprint registration is required';
-    }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  const connectToFingerprintScanner = () => {
-    setScanning(true);
-    setFingerprintStatus('scanning');
-    setErrors(prev => ({ ...prev, fingerprint: null }));
-    
-    // Simulate fingerprint scanning (replace with actual IoT integration)
-    setTimeout(() => {
-      setFingerprintStatus('registered');
-      setFormData(prev => ({
-        ...prev,
-        fingerprintData: 'fingerprint_template_data'
-      }));
-      setScanning(false);
-    }, 3000);
   };
 
   const handleChange = (e) => {
@@ -101,37 +97,43 @@ const SignupPage = () => {
     }
   };
 
- const navigate = useNavigate(); 
+  const navigate = useNavigate(); 
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (validateForm()) {
-    try {
-      const payload = {
-        ...formData,
-        idPhoto: previewImage
-      };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (validateForm()) {
+      try {
+        const formDataToSend = new FormData();
+        formDataToSend.append('fullName', formData.fullName);
+        formDataToSend.append('email', formData.email);
+        formDataToSend.append('password', formData.password);
+        formDataToSend.append('nationalId', formData.nationalId);
+        formDataToSend.append('section', formData.section);
+        formDataToSend.append('department', formData.department);
+        formDataToSend.append('academicYear', formData.academicYear);
+        if (formData.idPhoto) {
+          formDataToSend.append('idPhoto', formData.idPhoto);
+        }
 
-      const res = await fetch('http://localhost:5000/api/auth_stu/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+        const res = await fetch('http://localhost:5000/api/auth_stu/register', {
+          method: 'POST',
+          body: formDataToSend
+        });
 
-      const data = await res.json();
-      if (res.ok) {
-        alert('Student registered successfully!');
-        navigate('/login'); 
-      } else {
-        alert(data.message || 'Registration failed');
+        const data = await res.json();
+        if (res.ok) {
+          alert('Student registered successfully! Please login with your credentials.');
+          navigate('/login'); 
+        } else {
+          alert(data.message || 'Registration failed');
+        }
+
+      } catch (error) {
+        console.error('Registration error:', error);
+        alert('Failed to register. Please try again.');
       }
-
-    } catch (error) {
-      console.error(error);
-      alert('Something went wrong');
     }
-  }
-};
+  };
 
   const triggerFileInput = () => {
     fileInputRef.current.click();
@@ -161,6 +163,48 @@ const handleSubmit = async (e) => {
                 />
                 {errors.fullName && <span className="error-message">{errors.fullName}</span>}
                 <small className="hint">Please include up to your fourth name if applicable</small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="email">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Enter your email"
+                  className={errors.email ? 'error' : ''}
+                />
+                {errors.email && <span className="error-message">{errors.email}</span>}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="password">Password</label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Create a password (min 6 characters)"
+                  className={errors.password ? 'error' : ''}
+                />
+                {errors.password && <span className="error-message">{errors.password}</span>}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="confirmPassword">Confirm Password</label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Confirm your password"
+                  className={errors.confirmPassword ? 'error' : ''}
+                />
+                {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
               </div>
 
               <div className="form-group">
@@ -267,45 +311,8 @@ const handleSubmit = async (e) => {
             </div>
           </div>
 
-          {/* Third Column - Fingerprint Registration */}
-          <div className="fingerprint-section">
-            <h3>Fingerprint Registration</h3>
-            <div className="fingerprint-visualizer">
-              <div className={`fingerprint-status ${fingerprintStatus}`}>
-                {fingerprintStatus === 'not_registered' && (
-                  <>
-                    <i className="fas fa-fingerprint"></i>
-                    <p>Fingerprint not registered</p>
-                  </>
-                )}
-                {fingerprintStatus === 'scanning' && (
-                  <>
-                    <div className="spinner"></div>
-                    <p>Scanning in progress...</p>
-                  </>
-                )}
-                {fingerprintStatus === 'registered' && (
-                  <>
-                    <i className="fas fa-check-circle"></i>
-                    <p>Fingerprint registered</p>
-                  </>
-                )}
-              </div>
-              
-              <button
-                type="button"
-                className="scan-btn"
-                onClick={connectToFingerprintScanner}
-                disabled={scanning || fingerprintStatus === 'registered'}
-              >
-                {scanning ? 'Scanning...' : 'Scan Fingerprint'}
-              </button>
-              
-              {errors.fingerprint && (
-                <span className="error-message">{errors.fingerprint}</span>
-              )}
-            </div>
-            
+          {/* Submit Button */}
+          <div className="submit-section">
             <button 
               type="submit" 
               className="submit-btn" 

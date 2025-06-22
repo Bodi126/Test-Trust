@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth');
+const authStuRoutes = require('./routes/auth_stu');
+const resultsRoutes = require('./routes/results');
 const path = require('path');
 
 // Load environment variables
@@ -24,8 +26,24 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/TestTrust
 .then(() => console.log('Connected to MongoDB'))
 .catch(err => console.error('MongoDB connection error:', err));
 
+// Debug middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Routes
+console.log('Registering routes...');
+console.log('- /api/auth');
 app.use('/api/auth', authRoutes);
+
+console.log('- /api/auth_stu');
+app.use('/api/auth_stu', authStuRoutes);
+
+console.log('- /api/results');
+app.use('/api/results', resultsRoutes);
+
+console.log('Routes registered');
 
 // Basic route for testing
 app.get('/api', (req, res) => {
@@ -40,7 +58,15 @@ app.use((err, req, res, next) => {
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ message: 'Route not found' });
+  console.error(`404 - Route not found: ${req.method} ${req.originalUrl}`);
+  console.log('Available routes:');
+  console.log('- GET /api/auth_stu/check-questions/:examId');
+  console.log('- GET /api/auth_stu/exams-questions/:examId');
+  res.status(404).json({ 
+    message: 'Route not found',
+    method: req.method,
+    path: req.path
+  });
 });
 
 // Start the server

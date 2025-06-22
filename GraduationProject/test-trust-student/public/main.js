@@ -1,6 +1,8 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const remoteMain = require('@electron/remote/main');
+const net = require('net');
+const { exec } = require('child_process');
 
 // Initialize Electron Remote
 remoteMain.initialize();
@@ -31,12 +33,54 @@ function createWindow() {
     // Enable remote module for this window
     remoteMain.enable(mainWindow.webContents);
 
-    // Load the app URL with better error handling
-    const startUrl = process.env.DEV_URL || 'http://localhost:3000';
+    const port = process.env.PORT || 3001;
+    const startUrl = process.env.REACT_APP_ELECTRON_START_URL || `http://localhost:${port}`;
     
-    mainWindow.loadURL(startUrl).catch(err => {
-        console.error('Failed to load URL:', err);
-        mainWindow.loadFile(path.join(__dirname, 'fallback.html'));
+    // Function to check if port is available
+    const isPortTaken = (port, fn) => {
+        const tester = net.createServer()
+            .once('error', err => {
+                if (err.code !== 'EADDRINUSE') return fn(err);
+                fn(null, true);
+            })
+            .once('listening', () => {
+                tester.once('close', () => {
+                    fn(null, false);
+                }).close();
+            })
+            .listen(port);
+    };
+
+    // Function to load the URL with retries
+    const loadApp = (retries = 5, delay = 1000) => {
+        const tryLoad = (attempt) => {
+            mainWindow.loadURL(startUrl)
+                .catch(err => {
+                    console.error(`Attempt ${attempt} failed:`, err.message);
+                    if (attempt < retries) {
+                        console.log(`Retrying in ${delay}ms...`);
+                        setTimeout(() => tryLoad(attempt + 1), delay);
+                    } else {
+                        console.error('All retries failed. Please make sure the development server is running.');
+                        mainWindow.loadFile(path.join(__dirname, 'fallback.html'));
+                    }
+                });
+        };
+        tryLoad(1);
+    };
+
+    // Check if port is available before loading
+    isPortTaken(port, (err, taken) => {
+        if (err) {
+            console.error('Error checking port:', err);
+            return;
+        }
+        if (taken) {
+            console.log(`Port ${port} is in use, attempting to load app...`);
+            loadApp();
+        } else {
+            console.log(`Port ${port} is not in use. Make sure the development server is running.`);
+        }
     });
 
     // Show window when content is loaded

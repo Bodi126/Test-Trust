@@ -48,46 +48,49 @@ function login2() {
 
 
 const Login = () => {
-  const [studentName, setStudentName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    const res = await fetch('http://localhost:5000/api/auth_stu/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fullName: studentName.trim(), 
-        nationalId: password   
-      })
-    });
+    try {
+      const res = await fetch('http://localhost:5000/api/auth_stu/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password
+        })
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (res.ok) {
-      alert('Login successful');
-      localStorage.setItem('studentName', data.student.fullName); 
-      localStorage.setItem('studentId', data.student._id);
-      localStorage.setItem('nationalId', data.student.nationalId);
-      socket.emit('student_join', data.student._id);
-      window.location.href = '/'; 
-    } else {
-      alert(data.message || 'User does not exist??');
+      if (res.ok) {
+        alert('Login successful');
+        localStorage.setItem('studentName', data.fullName);
+        localStorage.setItem('studentEmail', data.email);
+        localStorage.setItem('studentId', data._id);
+        localStorage.setItem('token', data.token);
+        // Store national ID if available in the response
+        if (data.nationalId) {
+          localStorage.setItem('nationalId', data.nationalId);
+        }
+        socket.emit('student_join', data._id);
+        window.location.href = '/';
+      } else {
+        alert(data.message || 'Invalid email or password');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Failed to connect to the server. Please try again.');
     }
-  } catch (error) {
-    console.error(error);
-    alert('Something went wrong');
-  }
-};
+  };
 
 
   return (
-
-
     <div className="app-container">
     
       <div className="login-container">
@@ -95,12 +98,12 @@ const Login = () => {
           <h2>Student Login</h2>
           
           <div className="form-group">
-            <label htmlFor="studentName">Student Name</label>
+            <label htmlFor="email">Email</label>
             <input
-              type="text"
-              id="studentName"
-              value={studentName}
-              onChange={(e) => setStudentName(e.target.value)}
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>

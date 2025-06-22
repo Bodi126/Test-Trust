@@ -1,14 +1,30 @@
 import React from 'react';
-import io from 'socket.io-client';
+import { io } from 'socket.io-client';
+import axios from 'axios';
 
 const socket = io('http://localhost:5000');
 
 const ExamControl = () => {
-  const handleStartExam = () => {
-    socket.emit('start_exam', {
-      examId: 'EXAM123',
-      title: 'Math Exam'
-    });
+  const handleStartExam = async () => {
+    try {
+      // Get the active exam ID from localStorage or state
+      const examId = localStorage.getItem('activeExamId');
+      
+      if (!examId) {
+        alert('No exam selected');
+        return;
+      }
+      
+      // Fetch the complete exam data
+      const response = await axios.get(`http://localhost:5000/api/auth/exams/${examId}`);
+      const examData = response.data;
+      
+      // Emit the complete exam data
+      socket.emit('start_exam', examData);
+    } catch (error) {
+      console.error('Error starting exam:', error);
+      alert('Failed to start exam. Please try again.');
+    }
   };
 
   const handleEndExam = () => {

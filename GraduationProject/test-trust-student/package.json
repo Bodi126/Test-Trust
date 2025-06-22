@@ -33,13 +33,13 @@
   "main": "public/main.js",
   "homepage": "./",
   "scripts": {
-    "start": "react-scripts start",
+    "start": "set PORT=3001 && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "electron:serve": "concurrently -k \"cross-env BROWSER=none yarn start\" \"yarn electron:start\"",
+    "electron:serve": "concurrently \"cross-env BROWSER=none react-scripts start\" \"wait-on tcp:3001 && electron .\"",
     "electron:build": "",
-    "electron:start": "wait-on tcp:3000 && electron ."
+    "electron:start": "electron ."
   },
   "eslintConfig": {
     "extends": [

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AddExam1.css';
-import axios from 'axios';
+import axios from './axios';
 
 const validate = (values) => {
   const errors = {};
@@ -88,7 +88,7 @@ const AddExam1 = () => {
         userId: userData._id // Include user ID for exam count tracking
       };
 
-      const response = await axios.post('http://localhost:5000/api/auth/AddExam1', examData);
+      const response = await axios.post('/AddExam1', examData);
       
       const examId = localStorage.getItem('examId');
 

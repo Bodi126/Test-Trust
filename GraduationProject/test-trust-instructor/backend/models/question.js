@@ -40,11 +40,24 @@ const questionSchema = new mongoose.Schema({
       message: props => `MCQ questions must have at least 2 choices`
     }
   },
+  marks: {
+    type: Number,
+    required: true,
+    default: 1,
+    min: 0
+  },
   autoCorrect: {
     type: Boolean,
     default: false
+  },
+  correctAnswer: {
+    type: mongoose.Schema.Types.Mixed, // Can be string or boolean
+    required: function() { return this.autoCorrect && this.type !== 'written'; }
+  },
+  modelAnswer: {
+    type: String,
+    required: function() { return this.type === 'written'; }
   }
-
 }, { timestamps: true });
 
 questionSchema.pre('save', function (next) {

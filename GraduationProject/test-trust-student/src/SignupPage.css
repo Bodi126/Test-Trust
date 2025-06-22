@@ -192,110 +192,6 @@
   font-size: 1.1rem;
 }
 
-/* Fingerprint Section */
-.fingerprint-section {
-  flex: 1;
-  padding-left: 1rem;
-  display: flex;
-  flex-direction: column;
-}
-
-.fingerprint-section h3 {
-  text-align: center;
-  color: #2c3e50;
-  margin-bottom: 1.5rem;
-}
-
-.fingerprint-visualizer {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
-}
-
-.fingerprint-status {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 2rem;
-  border-radius: 8px;
-  width: 100%;
-  max-width: 300px;
-  text-align: center;
-}
-
-.fingerprint-status.not_registered {
-  background-color: #fff3e0;
-  border: 2px dashed #ffb74d;
-}
-
-.fingerprint-status.scanning {
-  background-color: #e3f2fd;
-  border: 2px solid #64b5f6;
-}
-
-.fingerprint-status.registered {
-  background-color: #e8f5e9;
-  border: 2px solid #81c784;
-}
-
-.fingerprint-status i {
-  font-size: 3rem;
-}
-
-.fingerprint-status .fa-fingerprint {
-  color: #ffb74d;
-}
-
-.fingerprint-status .fa-check-circle {
-  color: #81c784;
-}
-
-.fingerprint-status p {
-  margin: 0;
-  font-weight: 500;
-}
-
-.scan-btn {
-  background-color: #4292c6;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s;
-  width: 100%;
-  max-width: 200px;
-}
-
-.scan-btn:hover:not(:disabled) {
-  background-color: #06519c;
-}
-
-.scan-btn:disabled {
-  background-color: #b0bec5;
-  cursor: not-allowed;
-}
-
-/* Spinner Animation */
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid #f3f3f3;
-  border-top: 5px solid #4292c6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 /* Submit Button */
 .submit-btn {
   width: 100%;
@@ -323,7 +219,7 @@
   
   .form-section,
   .preview-section,
-  .fingerprint-section {
+  .submit-section {
     width: 100%;
     padding: 0;
     border: none;

@@ -76,25 +76,31 @@ const AddExam2 = () => {
       return;
     }
 
+    const calculateQuestionMarks = () => {
+      if (!examData?.totalMarks || !examData?.questionCount) return 1;
+      return Math.floor(examData.totalMarks / examData.questionCount);
+    };
+
     const newQuestion = {
       number: currentQuestion,
       type: questionType,
       question: questionText,
       autoCorrect: autoCorrection,
+      marks: calculateQuestionMarks(),
       answer: answer || {},
       choices: []
     };
 
     if (questionType === 'mcq') {
-  newQuestion.choices = [
-    answer.optionA,
-    answer.optionB,
-    answer.optionC,
-    answer.optionD
-  ];
-} else if (questionType === 'trueFalse') {
-  newQuestion.choices = ['True', 'False'];
-}
+      newQuestion.choices = [
+        answer.optionA,
+        answer.optionB,
+        answer.optionC,
+        answer.optionD
+      ];
+    } else if (questionType === 'trueFalse') {
+      newQuestion.choices = ['True', 'False'];
+    }
 
 
     const allQuestions = [...questions, newQuestion];

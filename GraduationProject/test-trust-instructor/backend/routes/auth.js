@@ -29,43 +29,97 @@ const transporter = nodemailer.createTransport({
 // Email configuration
 const FROM_EMAIL = process.env.FROM_EMAIL;
 
+/**
+ * Sends a login notification email to the user
+ * @param {string} email - User's email address
+ * @returns {Promise<boolean>} - True if email was sent successfully
+ */
+async function sendLoginNotification(email) {
+  try {
+    const mailOptions = {
+      from: `"TestTrust" <${FROM_EMAIL}>`,
+      to: email,
+      subject: 'New Login Detected',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>New Login Detected</h2>
+          <p>We noticed a new login to your TestTrust instructor account.</p>
+          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          <p>If this was you, you can safely ignore this email.</p>
+          <p>If you didn't log in, please secure your account immediately by changing your password.</p>
+          <p>Best regards,<br>TestTrust Team</p>
+        </div>
+      `,
+      text: `New login detected for your TestTrust instructor account at ${new Date().toLocaleString()}.\n\nIf this wasn't you, please secure your account immediately.`
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`[EMAIL] Login notification sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('[EMAIL] Failed to send login notification:', error);
+    return false;
+  }
+}
+
 // Signup route
 router.post('/signup', async (req, res) => {
   try {
-    console.log('Signup request received:', req.body);
+    console.log('Signup request received');
     
     // Validate required fields
     const { firstName, lastName, idNumber, position, email, password } = req.body;
     
     if (!firstName || !lastName || !idNumber || !position || !email || !password) {
       return res.status(400).json({ 
+        success: false,
         message: 'All fields are required',
         requiredFields: ['firstName', 'lastName', 'idNumber', 'position', 'email', 'password']
       });
     }
 
     // Check if user already exists (case-insensitive email check)
-    const existingUser = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    const existingUser = await User.findOne({ 
+      $or: [
+        { email: { $regex: new RegExp(`^${email}$`, 'i') } },
+        { idNumber: idNumber.toString().trim() }
+      ]
+    });
+
     if (existingUser) {
-      console.log('Signup failed: Email already exists:', email);
+      const field = existingUser.email.toLowerCase() === email.toLowerCase() ? 'Email' : 'ID Number';
+      console.log(`Signup failed: ${field} already exists`);
       return res.status(400).json({ 
-        message: 'Email already exists',
-        code: 'EMAIL_EXISTS'
+        success: false,
+        message: `${field} already exists`,
+        code: field.toUpperCase().replace(' ', '_') + '_EXISTS'
       });
     }
 
-    // Create new user
+    // Validate password strength
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Create new user (password will be hashed by the pre-save hook)
     const newUser = new User({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       idNumber: idNumber.toString().trim(),
       position: position.trim(),
       email: email.trim().toLowerCase(),
-      password: password.trim(),
+      password: password, // Will be hashed by pre-save hook
       twoFactorEnabled: false
     });
 
     await newUser.save();
+    
+    // Don't send back the password, even though it's hashed
+    newUser.password = undefined;
+    
     console.log('New user created successfully:', { 
       email: newUser.email,
       id: newUser._id 
@@ -84,6 +138,7 @@ router.post('/signup', async (req, res) => {
   } catch (err) {
     console.error('Signup error:', err);
     res.status(500).json({ 
+      success: false,
       message: 'Error creating account',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
@@ -94,31 +149,53 @@ router.post('/signup', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide both email and password'
+      });
+    }
+    
     console.log(`[LOGIN] Attempt for email: ${email}`);
 
     // Trim and normalize email for case-insensitive search
     const normalizedEmail = email.trim().toLowerCase();
     
-    // Find user with case-insensitive email search
-    const user = await User.findOne({ email: { $regex: new RegExp(`^${normalizedEmail}$`, 'i') } });
+    // Find user and explicitly select the password field
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
     
+    // Check if user exists and password is correct
     if (!user) {
-      console.log(`[LOGIN] Failed: User not found for email: ${email}`);
-      return res.status(401).json({ message: 'Invalid email or password.' });
+      console.log(`[LOGIN] User not found for email: ${email}`);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
     }
     
-    // Trim and compare passwords
-    const trimmedPassword = password.trim();
-    const storedPassword = user.password || '';
+    // Verify password
+    const isPasswordValid = await user.matchPassword(password);
+    
+    if (!isPasswordValid) {
+      console.log(`[LOGIN] Invalid password for email: ${email}`);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
     
     // Debug logs to help with troubleshooting
     console.log(`[AUTH] Password comparison for: ${email}`);
-    console.log(`[AUTH] Stored password length: ${storedPassword.length}, Input password length: ${trimmedPassword.length}`);
+    console.log(`[AUTH] Stored password hash length: ${user.password ? user.password.length : 0}`);
     
-    if (storedPassword !== trimmedPassword) {
+    // Verify password using bcrypt (handled by matchPassword method)
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
       console.log(`[AUTH] Failed: Password mismatch for email: ${email}`);
       return res.status(401).json({ 
-        message: 'Invalid email or password.',
+        success: false,
+        message: 'Invalid email or password',
         code: 'INVALID_CREDENTIALS'
       });
     }
@@ -259,420 +336,17 @@ router.get('/me', auth, async (req, res) => {
       loginNotificationsEnabled: user.loginNotificationsEnabled !== undefined ? user.loginNotificationsEnabled : true
     });
   } catch (error) {
-    console.error('Error fetching user data:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error getting user data:', error);
+    res.status(500).json({ message: 'Error retrieving user data' });
   }
 });
 
-// 2FA: Send verification code
-router.post('/send-2fa-code', async (req, res) => {
-  try {
-    const { email } = req.body;
-    
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
-    }
-
-    // Find user by email (case-insensitive)
-    const user = await User.findOne({ 
-      email: { $regex: new RegExp(`^${email}$`, 'i') } 
-    });
-
-    if (!user) {
-      // Don't reveal if user exists for security
-      return res.json({ message: 'If your email exists, you will receive a verification code' });
-    }
-
-    // Generate 6-digit code
-    const code = Math.floor(100000 + Math.random() * 900000);
-    const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
-
-    // Save code and expiry to user
-    user.twoFactorCode = code;
-    user.twoFactorExpires = expiresAt;
-    await user.save();
-
-    // Send email with code
-    try {
-      const mailOptions = {
-        from: `"TestTrust" <${FROM_EMAIL}>`,
-        to: user.email,
-        subject: 'Your Two-Factor Authentication Code',
-        text: `Your verification code is: ${code}\n\nThis code is valid for 10 minutes.`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Two-Factor Authentication</h2>
-            <p>Your verification code is:</p>
-            <div style="background: #f4f4f4; padding: 20px; margin: 20px 0; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 2px;">
-              ${code}
-            </div>
-            <p>This code is valid for 10 minutes.</p>
-            <p>If you didn't request this, please secure your account immediately.</p>
-            <p>Best regards,<br>TestTrust Team</p>
-          </div>
-        `
-      };
-
-      await transporter.sendMail(mailOptions);
-      console.log(`2FA code sent to ${user.email}`);
-    } catch (emailError) {
-      console.error('Error sending 2FA email:', emailError);
-      return res.status(500).json({ message: 'Failed to send verification code' });
-    }
-
-    res.json({ 
-      message: 'Verification code sent to your email',
-      // For testing only - remove in production
-      testCode: process.env.NODE_ENV === 'development' ? code : undefined
-    });
-  } catch (error) {
-    console.error('2FA send code error:', error);
-    res.status(500).json({ message: 'Failed to process 2FA request' });
-  }
-});
-
-// 2FA: Verify code
-router.post('/verify-2fa', async (req, res) => {
-  try {
-    const { email, code } = req.body;
-    
-    if (!email || !code) {
-      return res.status(400).json({ 
-        valid: false, 
-        message: 'Email and verification code are required' 
-      });
-    }
-
-    // Find user by email (case-insensitive) and code
-    console.log('Verifying 2FA code:', { email, code, type: typeof code });
-    
-    const user = await User.findOne({ 
-      email: { $regex: new RegExp(`^${email}$`, 'i') },
-      $or: [
-        { twoFactorCode: code },
-        { twoFactorCode: parseInt(code, 10) }
-      ],
-      twoFactorExpires: { $gt: new Date() }
-    }).select('+twoFactorCode +twoFactorExpires');
-    
-    console.log('User found for 2FA:', user ? 'Yes' : 'No');
-
-    if (!user) {
-      console.log('No user found with matching code or code expired');
-      return res.status(401).json({ 
-        success: false,
-        valid: false, 
-        message: 'Invalid or expired verification code' 
-      });
-    }
-
-    // Clear the used code
-    user.twoFactorCode = undefined;
-    user.twoFactorExpires = undefined;
-    user.lastLogin = new Date();
-    await user.save();
-
-    // Generate auth token with 2FA claim
-    const token = user.generateAuthToken();
-    
-    // Check if login notifications are enabled for this user
-    const shouldSendNotification = user.loginNotificationsEnabled === undefined ? true : user.loginNotificationsEnabled;
-    
-    console.log(`[2FA] Login notifications ${shouldSendNotification ? 'ENABLED' : 'DISABLED'} for ${user.email}`);
-    
-    if (shouldSendNotification) {
-      // Send login notification (fire and forget)
-      sendLoginNotification(user.email)
-        .then(sent => {
-          if (sent) {
-            console.log(`[2FA] Successfully sent notification to ${user.email}`);
-          } else {
-            console.error(`[2FA] Failed to send notification to ${user.email}`);
-          }
-        })
-        .catch(err => {
-          console.error('[2FA] Notification error:', err);
-        });
-    } else {
-      console.log(`[2FA] NOT sending notification to ${user.email} - notifications are disabled in user settings`);
-    }
-    
-    // Set HTTP-only cookie with the token
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-      sameSite: 'strict',
-      path: '/'
-    });
-    
-    // Return complete user data (excluding sensitive fields)
-    const userResponse = {
-      _id: user._id,
-      email: user.email,
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      position: user.position || '',
-      idNumber: user.idNumber || '',
-      twoFactorEnabled: user.twoFactorEnabled || false,
-      lastLogin: user.lastLogin,
-      role: user.role || 'instructor'
-    };
-
-    console.log(`User ${user.email} successfully completed 2FA verification`);
-
-    res.status(200).json({
-      success: true,
-      valid: true,
-      message: 'Verification successful',
-      token: token,
-      user: userResponse
-    });
-  } catch (error) {
-    console.error('2FA verification error:', error);
-    res.status(500).json({ 
-      valid: false, 
-      message: 'Failed to verify code' 
-    });
-  }
-});
-
-// Toggle 2FA for user
-router.post('/toggle-2fa', async (req, res) => {
-  try {
-    const { email, enabled } = req.body;
-    
-    if (email === undefined || enabled === undefined) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Email and enabled status are required' 
-      });
-    }
-
-    // Find user by email (case-insensitive)
-    const user = await User.findOne({ 
-      email: { $regex: new RegExp(`^${email}$`, 'i') } 
-    });
-
-    if (!user) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'User not found' 
-      });
-    }
-
-    // Update 2FA status
-    user.twoFactorEnabled = enabled;
-    
-    // If disabling 2FA, clear any existing codes
-    if (!enabled) {
-      user.twoFactorCode = undefined;
-      user.twoFactorExpires = undefined;
-    }
-    
-    await user.save();
-
-    // Return updated user data (without sensitive info)
-    const userResponse = {
-      _id: user._id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      position: user.position,
-      idNumber: user.idNumber,
-      twoFactorEnabled: user.twoFactorEnabled
-    };
-
-    res.json({ 
-      success: true,
-      message: `Two-factor authentication ${enabled ? 'enabled' : 'disabled'} successfully`,
-      user: userResponse
-    });
-  } catch (error) {
-    console.error('Toggle 2FA error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Failed to update two-factor authentication',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// Generate random OTP
-function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-// Send login notification email
-async function sendLoginNotification(email) {
-  try {
-    console.log(`[LOGIN NOTIFICATION] Preparing notification for: ${email}`);
-    
-    if (!email) {
-      console.error('[LOGIN NOTIFICATION] No email provided');
-      return false;
-    }
-    
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-    const formattedTime = now.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
-
-    const mailOptions = {
-      from: `"TestTrust Security" <${process.env.FROM_EMAIL || FROM_EMAIL}>`,
-      to: email,
-      subject: 'New Login Detected on Your Account',
-      text: `
-        New Login Alert
-        ---------------
-        
-        A successful login was detected on your TestTrust account.
-        
-        Date: ${formattedDate}
-        Time: ${formattedTime}
-        
-        If this was you, you can safely ignore this email.
-        If you did not perform this login, please secure your account immediately.
-        
-        Best regards,
-        TestTrust Security Team
-      `,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-          <h2 style="color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-            New Login Detected
-          </h2>
-          
-          <p>Hello,</p>
-          
-          <p>A successful login was detected on your TestTrust account.</p>
-          
-          <div style="background: #f8f9fa; border-left: 4px solid #3498db; padding: 15px; margin: 20px 0;">
-            <p style="margin: 5px 0;"><strong>Date:</strong> ${formattedDate}</p>
-            <p style="margin: 5px 0;"><strong>Time:</strong> ${formattedTime}</p>
-          </div>
-          
-          <p>If this was you, you can safely ignore this email.</p>
-          
-          <p style="color: #e74c3c; font-weight: bold;">
-            If you did not perform this login, please secure your account immediately by changing your password.
-          </p>
-          
-          <p>Best regards,<br>
-          <strong>TestTrust Security Team</strong></p>
-          
-          <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #7f8c8d; font-size: 12px;">
-            <p>This is an automated message. Please do not reply to this email.</p>
-          </div>
-        </div>
-      `
-    };
-
-    console.log(`[LOGIN NOTIFICATION] Sending to: ${email}`);
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`[LOGIN NOTIFICATION] Sent to ${email} (${info.messageId})`);
-    return true;
-  } catch (error) {
-    console.error('[LOGIN NOTIFICATION] Error:', error.message);
-    return false;
-  }
-}
-
-// Send contact form email
-async function sendContactEmail(userEmail, message) {
-  try {
-    const mailOptions = {
-      from: `"TestTrust Support" <${process.env.EMAIL_USER}>`,
-      to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER, // Send to admin email or fallback to sender
-      subject: 'New Contact Form Submission',
-      html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-          <h2>New Contact Message</h2>
-          <p><strong>From:</strong> ${userEmail}</p>
-          <p><strong>Message:</strong></p>
-          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
-            ${message.replace(/\n/g, '<br>')}
-          </div>
-          <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
-            This is an automated message from TestTrust. Please do not reply to this email.
-          </p>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
-    return { success: true };
-  } catch (error) {
-    console.error('Error sending contact email:', error);
-    throw new Error('Failed to send contact email');
-  }
-}
-
-// Contact form submission
-router.post('/contact', async (req, res) => {
-  try {
-    const { email, message } = req.body;
-    
-    if (!email || !message) {
-      return res.status(400).json({ message: 'Email and message are required' });
-    }
-
-    // Send the email
-    await sendContactEmail(email, message);
-    
-    res.status(200).json({ message: 'Your message has been sent successfully!' });
-  } catch (error) {
-    console.error('Error in contact form submission:', error);
-    res.status(500).json({ message: error.message || 'Failed to send message' });
-  }
-});
-
-// Send OTP email using Nodemailer
-async function sendOTPEmail(email, otp) {
-  try {
-    const mailOptions = {
-      from: `"TestTrust" <${FROM_EMAIL}>`,
-      to: email,
-      subject: 'Your Password Reset OTP',
-      text: `Your OTP for password reset is: ${otp}\n\nThis OTP is valid for 10 minutes.`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Password Reset Request</h2>
-          <p>You requested to reset your password. Here is your verification code:</p>
-          <div style="background: #f4f4f4; padding: 20px; margin: 20px 0; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 2px;">
-            ${otp}
-          </div>
-          <p>This OTP is valid for 10 minutes. If you didn't request this, please ignore this email.</p>
-          <p>Best regards,<br>TestTrust Team</p>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log('Password reset email sent to:', email);
-    return true;
-  } catch (error) {
-    console.error('Error sending password reset email:', error.message);
-    return false;
-  }
-}
-
-// Forgot password - Send OTP
+// Forgot password route
 router.post('/forgot-password', async (req, res) => {
-  console.log('Forgot password request received:', req.body);
-  
   try {
     const { email } = req.body;
     
     if (!email) {
-      console.log('No email provided in request');
       return res.status(400).json({ 
         success: false,
         message: 'Email is required' 
@@ -683,494 +357,184 @@ router.post('/forgot-password', async (req, res) => {
     const user = await User.findOne({ 
       email: { $regex: new RegExp(`^${email}$`, 'i') } 
     });
-    
+
     if (!user) {
-      console.log('No user found with email:', email);
-      // For security, don't reveal if email exists or not
+      // Don't reveal if user exists for security
       return res.json({ 
-        success: true, // Still return success to prevent email enumeration
-        message: 'If your email exists in our system, you will receive an OTP' 
-      });
-    }
-
-    console.log('User found, generating OTP for:', user.email);
-
-    // Generate OTP and set expiry (10 minutes from now)
-    const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    // Save OTP and expiry to user
-    user.resetPasswordOtp = otp;
-    user.resetOtpExpires = otpExpiry;
-    await user.save();
-    
-    console.log('OTP generated and saved for user:', user.email);
-
-    try {
-      // Log OTP to console for testing
-      console.log('\n======================================');
-      console.log('TESTING - OTP for', user.email, ':', otp);
-      console.log('This OTP is valid for 10 minutes');
-      console.log('======================================\n');
-      
-      // Try to send email, but don't fail if it doesn't work
-      try {
-        console.log('Attempting to send OTP email to:', user.email);
-        const emailSent = await sendOTPEmail(user.email, otp);
-        if (emailSent) {
-          console.log('OTP email sent successfully to:', user.email);
-        }
-      } catch (emailError) {
-        console.error('Email sending failed (but continuing anyway):', emailError.message);
-        // Continue even if email sending fails
-      }
-
-      res.json({ 
         success: true,
-        message: 'Please check your email for the OTP (also check console for testing)',
-        otp: otp // Send OTP in response for testing (remove in production)
-      });
-    } catch (error) {
-      console.error('Error in OTP process:', error);
-      throw error; // Re-throw to be caught by outer catch
-    }
-  } catch (error) {
-    console.error('Forgot password error:', {
-      message: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString()
-    });
-    
-    res.status(500).json({ 
-      success: false,
-      message: 'Failed to process forgot password request',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// Verify OTP
-router.post('/verify-reset-otp', async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-    
-    if (!email || !otp) {
-      return res.status(400).json({ message: 'Email and OTP are required' });
-    }
-
-    // Find user by email (case-insensitive)
-    const user = await User.findOne({ 
-      email: { $regex: new RegExp(`^${email}$`, 'i') },
-      resetPasswordOtp: otp,
-      resetOtpExpires: { $gt: Date.now() }
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
-    }
-
-    // Generate a reset token (valid for 1 hour)
-    const resetToken = crypto.randomBytes(20).toString('hex');
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
-    user.resetPasswordOtp = undefined;
-    user.resetOtpExpires = undefined;
-    await user.save();
-
-    res.json({ 
-      message: 'OTP verified successfully',
-      token: resetToken
-    });
-  } catch (error) {
-    console.error('Verify OTP error:', error);
-    res.status(500).json({ message: 'Failed to verify OTP' });
-  }
-});
-
-// In-memory token blacklist (in production, use Redis or similar)
-const tokenBlacklist = new Set();
-
-// Middleware to check if token is blacklisted
-const checkTokenBlacklist = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (token && tokenBlacklist.has(token)) {
-    return res.status(401).json({ success: false, message: 'Session expired. Please log in again.' });
-  }
-  next();
-};
-
-// Update login notifications preference
-router.post('/update-login-notifications', async (req, res) => {
-  try {
-    console.log('[LOGIN NOTIFICATIONS] Update request received:', req.body);
-    
-    const { enabled } = req.body;
-    const token = req.headers.authorization?.split(' ')[1];
-    
-    if (!token) {
-      console.error('[LOGIN NOTIFICATIONS] No token provided');
-      return res.status(401).json({ 
-        success: false,
-        message: 'Authentication required' 
+        message: 'If your email exists, you will receive a password reset link' 
       });
     }
-    
+
+    // Use the model method to create a password reset token
+    const resetToken = user.createPasswordResetToken();
+    await user.save({ validateBeforeSave: false });
+
     try {
-      // Verify token and get user ID
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_jwt_secret');
-      console.log('[LOGIN NOTIFICATIONS] Decoded token:', decoded);
+      // Send email with reset link
+      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
       
-      const user = await User.findById(decoded._id); // Changed from decoded.userId to decoded._id
+      const mailOptions = {
+        from: `"TestTrust" <${FROM_EMAIL}>`,
+        to: user.email,
+        subject: 'Password Reset Request',
+        text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n` +
+          `Please click on the following link, or paste this into your browser to complete the process:\n\n` +
+          `${resetUrl}\n\n` +
+          `This link will expire in 10 minutes.\n\n` +
+          `If you did not request this, please ignore this email and your password will remain unchanged.\n`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Password Reset Request</h2>
+            <p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p>
+            <p>Please click the button below to complete the process:</p>
+            <div style="margin: 25px 0;">
+              <a href="${resetUrl}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+                Reset Password
+              </a>
+            </div>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all;">${resetUrl}</p>
+            <p><strong>This link will expire in 10 minutes.</strong></p>
+            <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
+          </div>
+        `
+      };
+
+      await transporter.sendMail(mailOptions);
       
-      if (!user) {
-        console.error('[LOGIN NOTIFICATIONS] User not found');
-        return res.status(404).json({ 
-          success: false,
-          message: 'User not found' 
-        });
-      }
-      
-      console.log('[LOGIN NOTIFICATIONS] Current user settings before update:', {
-        email: user.email,
-        loginNotificationsEnabled: user.loginNotificationsEnabled,
-        twoFactorEnabled: user.twoFactorEnabled
-      });
-      
-      // Update login notifications preference
-      user.loginNotificationsEnabled = enabled;
-      await user.save();
-      
-      console.log(`[LOGIN NOTIFICATIONS] Successfully updated preference for ${user.email} to:`, enabled);
-      
-      res.status(200).json({ 
+      res.json({ 
         success: true, 
-        message: 'Login notifications preference updated successfully',
-        loginNotificationsEnabled: user.loginNotificationsEnabled,
-        updatedAt: new Date().toISOString()
+        message: 'Password reset link sent to email' 
       });
+    } catch (err) {
+      // If email sending fails, clear the reset token
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      await user.save({ validateBeforeSave: false });
       
-    } catch (tokenError) {
-      console.error('[LOGIN NOTIFICATIONS] Token verification failed:', tokenError);
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid or expired token',
-        error: tokenError.message
-      });
-    }
-  } catch (error) {
-    console.error('[LOGIN NOTIFICATIONS] Error updating preference:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update login notifications preference',
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// Get user by ID
-router.get('/user/:id', async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).select('-password -twoFactorCode -resetPasswordToken -resetPasswordOtp');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.status(200).json(user);
-  } catch (error) {
-    console.error('Error fetching user:', error);
-    res.status(500).json({ message: 'Error fetching user data', error: error.message });
-  }
-});
-
-// Debug endpoint to check notification settings
-router.get('/debug/notification-settings', async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-    
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('email loginNotificationsEnabled twoFactorEnabled');
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    res.status(200).json({
-      email: user.email,
-      loginNotificationsEnabled: user.loginNotificationsEnabled,
-      twoFactorEnabled: user.twoFactorEnabled,
-      timestamp: new Date().toISOString()
-    });
-    
-  } catch (error) {
-    console.error('[DEBUG] Error fetching notification settings:', error);
-    res.status(500).json({ 
-      message: 'Error fetching notification settings', 
-      error: error.message 
-    });
-  }
-});
-
-// Apply token blacklist check to all routes except auth routes
-router.use((req, res, next) => {
-  if (!req.path.startsWith('/api/auth')) {
-    return checkTokenBlacklist(req, res, next);
-  }
-  next();
-});
-
-// Delete account
-router.delete('/delete-account', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const token = req.headers.authorization?.split(' ')[1];
-    
-    if (!email || !password) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Email and password are required' 
-      });
-    }
-
-    console.log('Delete account - Searching for user with email:', email);
-    
-    // Find user by email (case-insensitive) and explicitly select the password field
-    const user = await User.findOne({ 
-      email: { $regex: new RegExp(`^${email}$`, 'i') } 
-    }).select('+password');
-
-    console.log('User found:', user ? 'Yes' : 'No');
-    
-    if (!user) {
-      console.log('User not found with email:', email);
-      return res.status(404).json({ 
-        success: false,
-        message: 'User not found' 
-      });
-    }
-    
-    console.log('User object methods:', Object.keys(user).filter(key => typeof user[key] === 'function'));
-    console.log('User schema methods:', Object.keys(user.schema.methods));
-
-    try {
-      console.log('Starting password verification');
-      console.log('Input password:', password);
-      console.log('Stored password:', user.password);
-      
-      // Direct password comparison (temporary for testing)
-      if (user.password !== password) {
-        console.log('Password verification failed');
-        return res.status(401).json({ 
-          success: false,
-          message: 'Invalid credentials' 
-        });
-      }
-
-      // Blacklist the current token
-      if (token) {
-        tokenBlacklist.add(token);
-      }
-      
-      // Delete user
-      await User.findByIdAndDelete(user._id);
-      
-      // Clear the token from client via HTTP-only cookie (if used)
-      res.clearCookie('token', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/'
-      });
-      
-      res.json({ 
-        success: true,
-        message: 'Account deleted successfully',
-        shouldLogout: true  // Signal client to clear local storage and redirect
-      });
-    } catch (error) {
-      console.error('Password verification error:', error);
+      console.error('Error sending password reset email:', err);
       return res.status(500).json({
         success: false,
-        message: 'Error verifying password',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: 'There was an error sending the password reset email. Please try again later.'
       });
     }
   } catch (error) {
-    console.error('Delete account error:', error);
+    console.error('Forgot password error:', error);
     res.status(500).json({ 
       success: false,
-      message: 'Failed to delete account',
+      message: 'Error processing password reset request',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
 
-// Reset password
-router.post('/reset-password', async (req, res) => {
+// Reset password with token
+router.post('/reset-password/:token', async (req, res) => {
   try {
-    const { email, token, newPassword } = req.body;
-    
-    if (!email || !token || !newPassword) {
-      return res.status(400).json({ message: 'Email, token, and new password are required' });
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Password is required' 
+      });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    // Validate password strength
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
     }
 
-    // Find user by email and valid token
+    // Hash token to compare with stored hash
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    // Find user by token and check expiration
     const user = await User.findOne({
-      email: { $regex: new RegExp(`^${email}$`, 'i') },
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() }
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() }
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Password reset token is invalid or has expired' 
+      });
     }
 
-    // Update password and clear reset token
-    user.password = newPassword.trim();
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    await user.save();
+    try {
+      // Update password (will be hashed by pre-save hook)
+      user.password = password;
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      user.passwordChangedAt = Date.now() - 1000; // Ensure the token is still valid
+      await user.save();
 
-    res.json({ message: 'Password reset successful' });
+      // Send confirmation email
+      const mailOptions = {
+        from: `"TestTrust" <${FROM_EMAIL}>`,
+        to: user.email,
+        subject: 'Password Updated',
+        text: `Hello,\n\n` +
+          `This is a confirmation that the password for your account ${user.email} has just been changed.\n`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Password Updated</h2>
+            <p>Hello,</p>
+            <p>This is a confirmation that the password for your account <strong>${user.email}</strong> has just been changed.</p>
+            <p>If you did not make this change, please contact support immediately.</p>
+            <p>Best regards,<br>TestTrust Team</p>
+          </div>
+        `
+      };
+
+      await transporter.sendMail(mailOptions);
+      
+      res.json({ 
+        success: true, 
+        message: 'Password has been reset successfully' 
+      });
+    } catch (saveError) {
+      console.error('Error saving new password:', saveError);
+      return res.status(500).json({
+        success: false,
+        message: 'Error saving new password. Please try the password reset process again.'
+      });
+    }
   } catch (error) {
     console.error('Reset password error:', error);
-    res.status(500).json({ message: 'Failed to reset password' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Error resetting password',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
-
-router.get('/exams/date/:date', async (req, res) => {
+// Add questions route
+router.post('/add-questions', async (req, res) => {
   try {
-    const date = new Date(req.params.date);
-    date.setHours(0, 0, 0, 0);
-    
-    const exams = await Exam.find({
-      examDate: date,
-      archiveExam: false
-    }).sort({ examTime: 1 });
-
-    res.json(exams);
+    const { examId, questions } = req.body;
+    if (!examId || !Array.isArray(questions)) {
+      return res.status(400).json({ message: 'examId and questions array are required' });
+    }
+    // Attach examId to each question
+    const questionsWithExamId = questions.map(q => ({ ...q, examId }));
+    // Insert questions
+    const savedQuestions = await Question.insertMany(questionsWithExamId);
+    res.status(201).json({ message: 'Questions saved successfully', questions: savedQuestions });
   } catch (err) {
-    console.error('Error fetching exams by date:', err);
-    res.status(500).json({ error: 'Failed to fetch exams by date' });
+    console.error('Error saving questions:', err);
+    res.status(500).json({ message: 'Failed to save questions', error: err.message });
   }
 });
-
-router.post('/AddExam1', async (req, res) => {
-  try {
-    const { examTime, examDate, subject, department, year, examDuration, userId, createdBy } = req.body;
-    
-    // Validate user ID is provided
-    if (!userId) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ message: 'User ID is required' });
-    }
-
-    // Validate required fields
-    if (!examTime || !examDate || !subject || !department || !year || !examDuration) {
-      return res.status(400).json({ message: 'All fields are required' });
-    }
-
-    // Validate exam date is not in the past
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const inputDate = new Date(examDate);
-    inputDate.setHours(0, 0, 0, 0);
-
-    if (inputDate < today) {
-      return res.status(400).json({ message: 'Exam date cannot be in the past' });
-    }
-
-    // Check for time slot conflicts within the same department
-    const existingExams = await Exam.find({ 
-      department,
-      examDate: inputDate 
-    });
-
-    // Calculate new exam start and end times
-    const newExamStart = new Date(`${examDate}T${examTime}`);
-    const newExamEnd = new Date(newExamStart.getTime() + examDuration * 60000);
-
-    // Check for time conflicts within same department
-    for (const exam of existingExams) {
-      const existingStart = new Date(`${exam.examDate.toISOString().split('T')[0]}T${exam.examTime}`);
-      const existingEnd = new Date(existingStart.getTime() + exam.examDuration * 60000);
-
-      if (newExamStart < existingEnd && newExamEnd > existingStart) {
-        return res.status(400).json({ 
-          message: `Time conflict with another exam in ${department} department` 
-        });
-      }
-    }
-    const existingSubjectExam = await Exam.findOne({ 
-      subject: { $regex: new RegExp(`^${subject}$`, 'i') },
-      department,
-      year,
-      examDate: inputDate 
-    });
-    if (existingSubjectExam) {
-      return res.status(400).json({ 
-        message: `${subject} exam already exists for ${department} (Year ${year}) on this date` 
-      });
-    }
-      // Create and save the new exam within transaction
-      const newExam = new Exam({
-        ...req.body,
-        examDate: inputDate,
-        studentCount: Number(req.body.studentCount),
-        examDuration: Number(req.body.examDuration),
-        totalMarks: Number(req.body.totalMarks),
-        questionCount: Number(req.body.questionCount),
-        createdBy: createdBy || userId,
-        status: 'scheduled'
-      });
-
-      await newExam.save();
-
-      // Update user's exam count
-      const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        { $inc: { examCount: 1 } },
-        { new: true }
-      );
-  
-      res.status(201).json({ 
-        message: 'Exam created successfully', 
-        examId: newExam._id,
-        examCount: updatedUser.examCount || 0
-      });
-    } catch (err) {
-      console.error('Exam creation error:', err);
-      res.status(500).json({ 
-        message: 'Failed to create exam',
-        error: err.message
-      });
-    }
-  });
-  
-  router.post('/add-questions', async (req, res) => {
-    try {
-      const { examId, questions } = req.body;
-      if (!examId || !Array.isArray(questions)) {
-        return res.status(400).json({ message: 'examId and questions array are required' });
-      }
-      // Attach examId to each question
-      const questionsWithExamId = questions.map(q => ({ ...q, examId }));
-      // Insert questions
-      const savedQuestions = await Question.insertMany(questionsWithExamId);
-      res.status(201).json({ message: 'Questions saved successfully', questions: savedQuestions });
-    } catch (err) {
-      console.error('Error saving questions:', err);
-      res.status(500).json({ message: 'Failed to save questions', error: err.message });
-    }
-  });
   
 // Add questions and model answers for an exam (auto-correct)
 router.post('/add-questions-and-answers', async (req, res) => {
@@ -1188,14 +552,26 @@ router.post('/add-questions-and-answers', async (req, res) => {
       return res.status(404).json({ message: 'Exam not found' });
     }
 
-    // Prepare questions for insertion (remove answer field)
+    // Prepare questions for insertion with correctAnswer based on type
     const questionsToSave = questions.map(q => {
       const { answer, ...rest } = q;
-      return {
+      const questionData = {
         ...rest,
         examId: new mongoose.Types.ObjectId(examId),
         number: parseInt(q.number),
+        autoCorrect: true // Set autoCorrect based on exam's autoCorrection flag
       };
+
+      // Set correctAnswer based on question type
+      if (rest.type === 'mcq') {
+        questionData.correctAnswer = answer.correctOption;
+      } else if (rest.type === 'trueFalse') {
+        questionData.correctAnswer = answer.trueFalseAnswer === 'True';
+      } else if (rest.type === 'written') {
+        questionData.modelAnswer = answer.modelAnswer;
+      }
+
+      return questionData;
     });
 
     // Debug: Log input data
@@ -1315,19 +691,66 @@ router.post('/add-questions-and-answers', async (req, res) => {
   }
 });
 
+// Add new exam
+router.post('/AddExam1', auth, async (req, res) => {
+  try {
+    const examData = req.body;
+    
+    // Validate required fields
+    const requiredFields = ['department', 'year', 'subject', 'studentCount', 
+                          'examDate', 'examTime', 'examDuration',
+                          'totalMarks', 'questionCount'];
+    
+    const missingFields = requiredFields.filter(field => !examData[field]);
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        message: 'Missing required fields',
+        fields: missingFields
+      });
+    }
+
+    // Create exam
+    const exam = new Exam({
+      ...examData,
+      status: 'draft',
+      createdAt: new Date(),
+      createdBy: req.user.email,
+      userId: req.user._id
+    });
+
+    const savedExam = await exam.save();
+    
+    // Update user's exam count
+    await User.findByIdAndUpdate(req.user._id, {
+      $inc: { examCount: 1 }
+    });
+
+    res.status(201).json({ 
+      message: 'Exam created successfully',
+      examId: savedExam._id
+    });
+  } catch (err) {
+    console.error('Error creating exam:', err);
+    res.status(500).json({ 
+      message: 'Error creating exam',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
+
 // Get exams for a specific user
 router.get('/my-exams', async (req, res) => {
-try {
-  const user = req.query.user;
-  if (!user) {
-    return res.status(400).json({ message: 'User identifier is required' });
+  try {
+    const user = req.query.user;
+    if (!user) {
+      return res.status(400).json({ message: 'User identifier is required' });
+    }
+    const exams = await Exam.find({ createdBy: user });
+    res.status(200).json({ exams });
+  } catch (err) {
+    console.error('Error fetching user exams:', err);
+    res.status(500).json({ message: 'Failed to fetch exams', error: err.message });
   }
-  const exams = await Exam.find({ createdBy: user });
-  res.status(200).json({ exams });
-} catch (err) {
-  console.error('Error fetching user exams:', err);
-  res.status(500).json({ message: 'Failed to fetch exams', error: err.message });
-}
 });
 
 router.get('/alltoday_exams', async (req, res) => {

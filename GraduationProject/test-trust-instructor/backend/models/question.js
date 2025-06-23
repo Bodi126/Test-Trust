@@ -48,7 +48,7 @@ const questionSchema = new mongoose.Schema({
   },
   autoCorrect: {
     type: Boolean,
-    default: false
+    default: true
   },
   correctAnswer: {
     type: mongoose.Schema.Types.Mixed, // Can be string or boolean

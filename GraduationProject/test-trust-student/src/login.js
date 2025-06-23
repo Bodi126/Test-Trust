@@ -77,8 +77,11 @@ const Login = () => {
         // Store national ID if available in the response
         if (data.nationalId) {
           localStorage.setItem('nationalId', data.nationalId);
+          socket.emit('student_join', data.nationalId, null);
+        } else {
+          // Fallback to _id if nationalId is not available
+          socket.emit('student_join', data._id, null);
         }
-        socket.emit('student_join', data._id);
         window.location.href = '/';
       } else {
         alert(data.message || 'Invalid email or password');

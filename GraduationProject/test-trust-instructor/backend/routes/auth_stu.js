@@ -225,12 +225,23 @@ router.get('/student-answers/:examId/:studentNationalId', async (req, res) => {
 });
 
 router.post('/student-answers', async (req, res) => {
+  console.log('=== STUDENT ANSWERS SUBMISSION START ===');
   console.log('Received student answers request:', {
     body: req.body,
-    headers: req.headers
+    headers: req.headers,
+    method: req.method,
+    url: req.url,
+    timestamp: new Date().toISOString()
   });
 
   const { studentNationalId, examId, answers } = req.body;
+  
+  console.log('Extracted data:', {
+    studentNationalId,
+    examId,
+    answersCount: answers ? answers.length : 0,
+    answers: answers
+  });
   
   try {
     // Validate required fields
@@ -399,18 +410,61 @@ router.post('/student-answers', async (req, res) => {
       else if (percentage >= 60) finalGrade = 'D+';
       else if (percentage >= 50) finalGrade = 'D';
 
-      // Save the result
-      result = await Result.create({
-        examId,
-        studentNationalId,
-        totalScore,
-        maxScore: exam.totalMarks,
-        percentage,
-        finalGrade,
-        gradedAnswers,
-        gradedAt: new Date(),
-        isAutoGraded: true
-      });
+      try {
+        // Check if result already exists
+        const existingResult = await Result.findOne({ 
+          exam: examId, 
+          student: studentNationalId 
+        });
+        
+        if (existingResult) {
+          console.log('=== EXISTING RESULT FOUND ===');
+          console.log('Existing result ID:', existingResult._id);
+          console.log('Existing result percentage:', existingResult.percentage);
+          console.log('New result percentage:', percentage);
+          
+          // Update existing result instead of creating new one
+          result = await Result.findByIdAndUpdate(existingResult._id, {
+            totalScore,
+            maxScore: exam.totalMarks,
+            percentage,
+            finalGrade,
+            gradedAnswers,
+            gradedAt: new Date(),
+            isAutoGraded: true
+          }, { new: true });
+          
+          console.log('Updated existing result:', result._id);
+        } else {
+          console.log('=== CREATING NEW RESULT ===');
+          
+          // Save the result with proper field names
+          result = await Result.create({
+            exam: examId,  // Use 'exam' field name
+            student: studentNationalId,  // Use 'student' field name
+            totalScore,
+            maxScore: exam.totalMarks,
+            percentage,
+            finalGrade,
+            gradedAnswers,
+            gradedAt: new Date(),
+            isAutoGraded: true
+          });
+          
+          console.log('Created new result:', result._id);
+        }
+      } catch (resultError) {
+        console.error('=== RESULT CREATION ERROR ===');
+        console.error('Error creating/updating result:', resultError);
+        console.error('Error details:', {
+          code: resultError.code,
+          keyPattern: resultError.keyPattern,
+          keyValue: resultError.keyValue,
+          message: resultError.message
+        });
+        
+        throw new Error('This suggests a database schema issue. Please restart the server.');
+      }
     }
 
     // Save the student's answers
@@ -448,7 +502,11 @@ router.post('/student-answers', async (req, res) => {
     }
 
     res.status(201).json(response);
+    
+    console.log('=== STUDENT ANSWERS SUBMISSION SUCCESS ===');
+    console.log('Response sent:', response);
   } catch (err) {
+    console.log('=== STUDENT ANSWERS SUBMISSION ERROR ===');
     console.error('Error in /student-answers:', {
       error: err.message,
       stack: err.stack,

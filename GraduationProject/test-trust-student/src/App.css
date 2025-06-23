@@ -17,10 +17,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  background-color: #4292c6;
+  padding: 1.2rem 2.5rem;
+  background: #0C1C22 !important; 
   color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
+  border-radius: 0 0 18px 18px;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -28,46 +29,63 @@
 
 .nav-left {
   display: flex;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 .nav-link {
   color: white;
   text-decoration: none;
   font-weight: 500;
-  font-size: 1rem;
-  padding: 0.5rem;
+  font-size: 1.08rem;
+  padding: 0.6rem 1.1rem;
   background: none;
   border: none;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.3s, color 0.3s, box-shadow 0.3s;
 }
 
 .nav-link:hover {
-    color: #e6f3ff;
-  transform: translateY(-2px);
-  
+  color: #fff;
+  background: rgba(255,255,255,0.13);
+  box-shadow: 0 2px 8px rgba(66,146,198,0.08);
+  transform: translateY(-2px) scale(1.04);
 }
 
 .nav-link.active {
-  font-weight: 600;
-  border-bottom: 2px solid white;
+  font-weight: 700;
+  border-bottom: 2px solid #fff;
 }
 
-
-
+.logo {
+  height: 54px;
+  width: 54px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(66,146,198,0.12);
+  margin: 0 1.5rem;
+}
 
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
-.logo {
-  height: 40px;
-  width: auto;
-  border-radius: 4px;
-  align-items: center;
+.auth-logged {
+  background: rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 0.5rem 1.5rem;
+  box-shadow: 0 2px 8px rgba(66,146,198,0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.student-name {
+  font-weight: 600;
+  font-size: 1.08rem;
+  color: #e6f3ff;
 }
 
 .auth-buttons {

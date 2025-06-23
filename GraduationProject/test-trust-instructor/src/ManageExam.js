@@ -336,7 +336,7 @@ const ManageExam = () => {
                         <div className="details-item">
                           <span className="details-item-label">Auto Correction:</span>
                           <span className="details-item-value">
-                            {exam.autoCorrection ? 'Enabled' : 'Disabled'}
+                            Enabled
                           </span>
                         </div>
                       </div>

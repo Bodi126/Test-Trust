@@ -440,61 +440,109 @@
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(44, 62, 80, 0.25);
+  z-index: 9999;
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
+  justify-content: center;
+  animation: fadeIn 0.3s;
 }
 
-.warning-modal {
-  background: white;
-  border-radius: 8px;
-  padding: 25px;
-  width: 400px;
-  max-width: 90%;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.warning-modal h3 {
+.confirmation-modal {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(66,146,198,0.18);
+  padding: 2.5rem 2.2rem 2rem 2.2rem;
+  min-width: 350px;
+  max-width: 95vw;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
+  border-top: 6px solid #4292c6;
+  animation: popIn 0.25s;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.confirmation-modal h3 {
   margin-top: 0;
-  color: #e74c3c;
+  font-size: 1.5rem;
+  color: #06519c;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.confirmation-modal p {
+  color: #333;
+  font-size: 1.08rem;
+  margin-bottom: 1.2rem;
+}
+
+.selected-answers-summary {
+  background: #f5f7fa;
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 4px rgba(66,146,198,0.06);
+}
+.selected-answers-summary h4 {
+  margin: 0 0 0.5rem 0;
+  color: #4292c6;
+  font-size: 1.08rem;
+}
+.selected-answers-summary ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.selected-answers-summary li {
+  padding: 0.2rem 0;
+  font-size: 1rem;
+  color: #222;
 }
 
 .modal-buttons {
   display: flex;
+  gap: 1.2rem;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
+  margin-top: 1.5rem;
 }
 
 .modal-btn {
-  padding: 8px 20px;
+  padding: 0.7rem 1.7rem;
+  border-radius: 8px;
   border: none;
-  border-radius: 4px;
+  font-size: 1.08rem;
+  font-weight: 600;
   cursor: pointer;
-  font-weight: bold;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
+  box-shadow: 0 2px 8px rgba(66,146,198,0.08);
 }
-
 .cancel-btn {
-  background: #f0f0f0;
+  background: linear-gradient(90deg, #e0eafc 0%, #cfdef3 100%);
+  color: #06519c;
 }
-
 .cancel-btn:hover {
-  background: #e0e0e0;
+  background: #e6f3ff;
+  color: #06519c;
+  transform: translateY(-2px) scale(1.04);
 }
-
 .confirm-btn {
-  background: #e74c3c;
-  color: white;
+  background: linear-gradient(90deg, #4292c6 0%, #06519c 100%);
+  color: #fff;
 }
-
 .confirm-btn:hover {
-  background: #c0392b;
+  background: linear-gradient(90deg, #06519c 0%, #4292c6 100%);
+  color: #fff;
+  transform: translateY(-2px) scale(1.04);
 }
 
 .loading, .no-questions {

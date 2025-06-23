@@ -18,43 +18,85 @@ import {
   Avatar,
   LinearProgress,
   Chip,
-  IconButton
+  IconButton,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './ResultView.css';
-
-const mockResults = [
-  { id: 1, name: 'John Doe', avatar: 'JD', year: '2023', department: 'Computer Science', subject: 'Data Structures', score: 85, grade: 'A', status: 'Passed' },
-  { id: 2, name: 'Jane Smith', avatar: 'JS', year: '2023', department: 'Computer Science', subject: 'Data Structures', score: 72, grade: 'B', status: 'Passed' },
-  { id: 3, name: 'Alex Johnson', avatar: 'AJ', year: '2023', department: 'Electrical', subject: 'Circuit Theory', score: 91, grade: 'A+', status: 'Passed' },
-  { id: 4, name: 'Sarah Williams', avatar: 'SW', year: '2022', department: 'Mechanical', subject: 'Thermodynamics', score: 68, grade: 'C', status: 'Passed' },
-  { id: 5, name: 'Michael Brown', avatar: 'MB', year: '2022', department: 'Computer Science', subject: 'Algorithms', score: 45, grade: 'F', status: 'Failed' },
-];
 
 const ResultView = () => {
   const navigate = useNavigate();
   const [yearFilter, setYearFilter] = useState('All');
   const [departmentFilter, setDepartmentFilter] = useState('All');
   const [subjectFilter, setSubjectFilter] = useState('All');
-  const [filteredResults, setFilteredResults] = useState(mockResults);
-  
-  const years = ['All', ...new Set(mockResults.map(item => item.year))];
-  const departments = ['All', ...new Set(mockResults.map(item => item.department))];
-  const subjects = ['All', ...new Set(mockResults.map(item => item.subject))];
+  const [results, setResults] = useState([]);
+  const [filteredResults, setFilteredResults] = useState([]);
+  const [summary, setSummary] = useState({
+    totalResults: 0,
+    passedResults: 0,
+    failedResults: 0,
+    passRate: 0,
+    averageScore: 0,
+    gradeDistribution: {}
+  });
+  const [filters, setFilters] = useState({
+    years: ['All'],
+    departments: ['All'],
+    subjects: ['All']
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // Fetch data from API
+  const fetchResults = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params = new URLSearchParams();
+      if (yearFilter !== 'All') params.append('year', yearFilter);
+      if (departmentFilter !== 'All') params.append('department', departmentFilter);
+      if (subjectFilter !== 'All') params.append('subject', subjectFilter);
+
+      // Get user data from localStorage to filter by instructor
+      const userData = JSON.parse(localStorage.getItem('user'));
+      let apiUrl = '/api/results/dashboard';
+      
+      if (userData && userData.email) {
+        // Use instructor-specific endpoint
+        apiUrl = `/api/results/instructor/${encodeURIComponent(userData.email)}`;
+      }
+
+      const response = await axios.get(`${apiUrl}?${params.toString()}`);
+      
+      setResults(response.data.results);
+      setFilteredResults(response.data.results);
+      setSummary(response.data.summary);
+      setFilters(response.data.filters);
+    } catch (err) {
+      console.error('Error fetching results:', err);
+      setError('Failed to load results. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial data fetch
   useEffect(() => {
-    let results = mockResults;
-    
-    if (yearFilter !== 'All') results = results.filter(item => item.year === yearFilter);
-    if (departmentFilter !== 'All') results = results.filter(item => item.department === departmentFilter);
-    if (subjectFilter !== 'All') results = results.filter(item => item.subject === subjectFilter);
-    
-    setFilteredResults(results);
+    fetchResults();
+  }, []);
+
+  // Update filtered results when filters change
+  useEffect(() => {
+    fetchResults();
   }, [yearFilter, departmentFilter, subjectFilter]);
 
+  // Prepare chart data
   const chartData = filteredResults.reduce((acc, curr) => {
     const existing = acc.find(item => item.name === curr.subject);
     if (existing) {
@@ -70,8 +112,43 @@ const ResultView = () => {
   }));
 
   const handleBackToDashboard = () => {
-    navigate('/dashboard'); // Update this path to match your dashboard route
+    navigate('/dashboard');
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="frame-container">
+        <Container maxWidth="lg" className="result-container">
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <CircularProgress size={60} />
+            <Typography variant="h6" sx={{ ml: 2 }}>
+              Loading results...
+            </Typography>
+          </Box>
+        </Container>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="frame-container">
+        <Container maxWidth="lg" className="result-container">
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <IconButton onClick={fetchResults} sx={{ mr: 2 }}>
+              <CircularProgress size={20} />
+            </IconButton>
+            <Typography>Click to retry</Typography>
+          </Box>
+        </Container>
+      </div>
+    );
+  }
 
   return (
     <div className="frame-container">
@@ -116,7 +193,7 @@ const ResultView = () => {
                   label="Academic Year"
                   onChange={(e) => setYearFilter(e.target.value)}
                 >
-                  {years.map(year => (
+                  {filters.years.map(year => (
                     <MenuItem key={year} value={year}>{year}</MenuItem>
                   ))}
                 </Select>
@@ -130,7 +207,7 @@ const ResultView = () => {
                   label="Department"
                   onChange={(e) => setDepartmentFilter(e.target.value)}
                 >
-                  {departments.map(dept => (
+                  {filters.departments.map(dept => (
                     <MenuItem key={dept} value={dept}>{dept}</MenuItem>
                   ))}
                 </Select>
@@ -144,7 +221,7 @@ const ResultView = () => {
                   label="Subject"
                   onChange={(e) => setSubjectFilter(e.target.value)}
                 >
-                  {subjects.map(sub => (
+                  {filters.subjects.map(sub => (
                     <MenuItem key={sub} value={sub}>{sub}</MenuItem>
                   ))}
                 </Select>
@@ -161,21 +238,29 @@ const ResultView = () => {
                   Performance Overview
                 </Typography>
                 <Box className="chart-container">
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                      <XAxis dataKey="subject" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar 
-                        dataKey="averageScore" 
-                        fill="#3f51b5"
-                        name="Average Score"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {chartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                        <XAxis dataKey="subject" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar 
+                          dataKey="averageScore" 
+                          fill="#3f51b5"
+                          name="Average Score"
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 250 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No data available for chart
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               </Paper>
             </Grid>
@@ -186,23 +271,13 @@ const ResultView = () => {
                 </Typography>
                 <Box className="summary-content">
                   <Typography variant="body1" className="summary-item">
-                    Total Results: <strong>{filteredResults.length}</strong>
+                    Total Results: <strong>{summary.totalResults}</strong>
                   </Typography>
                   <Typography variant="body1" className="summary-item">
-                    Pass Rate: <strong>
-                      {Math.round(
-                        (filteredResults.filter(r => r.status === 'Passed').length / 
-                        (filteredResults.length || 1)) * 100
-                      )}%
-                    </strong>
+                    Pass Rate: <strong>{summary.passRate}%</strong>
                   </Typography>
                   <Typography variant="body1" className="summary-item">
-                    Average Score: <strong>
-                      {Math.round(
-                        filteredResults.reduce((sum, curr) => sum + curr.score, 0) / 
-                        (filteredResults.length || 1)
-                      )}
-                    </strong>
+                    Average Score: <strong>{summary.averageScore}</strong>
                   </Typography>
                 </Box>
                 <Box className="progress-container">
@@ -212,35 +287,35 @@ const ResultView = () => {
                   <LinearProgress 
                     variant="determinate" 
                     value={Math.min(100, 
-                      (filteredResults.filter(r => r.score >= 80).length / 
-                      (filteredResults.length || 1)) * 100
+                      (summary.gradeDistribution['A+'] || 0 + summary.gradeDistribution['A'] || 0) / 
+                      (summary.totalResults || 1) * 100
                     )} 
                     className="progress-bar grade-a"
                   />
                   <Typography variant="caption" className="progress-label">
-                    A Grades: {filteredResults.filter(r => r.score >= 80).length}
+                    A Grades: {(summary.gradeDistribution['A+'] || 0) + (summary.gradeDistribution['A'] || 0)}
                   </Typography>
                   <LinearProgress 
                     variant="determinate" 
                     value={Math.min(100, 
-                      (filteredResults.filter(r => r.score >= 60 && r.score < 80).length / 
-                      (filteredResults.length || 1)) * 100
+                      (summary.gradeDistribution['B+'] || 0 + summary.gradeDistribution['B'] || 0 + summary.gradeDistribution['C+'] || 0 + summary.gradeDistribution['C'] || 0) / 
+                      (summary.totalResults || 1) * 100
                     )} 
                     className="progress-bar grade-bc"
                   />
                   <Typography variant="caption" className="progress-label">
-                    B-C Grades: {filteredResults.filter(r => r.score >= 60 && r.score < 80).length}
+                    B-C Grades: {(summary.gradeDistribution['B+'] || 0) + (summary.gradeDistribution['B'] || 0) + (summary.gradeDistribution['C+'] || 0) + (summary.gradeDistribution['C'] || 0)}
                   </Typography>
                   <LinearProgress 
                     variant="determinate" 
                     value={Math.min(100, 
-                      (filteredResults.filter(r => r.score < 60).length / 
-                      (filteredResults.length || 1)) * 100
+                      (summary.gradeDistribution['F'] || 0) / 
+                      (summary.totalResults || 1) * 100
                     )} 
                     className="progress-bar grade-f"
                   />
                   <Typography variant="caption" className="progress-label">
-                    F Grades: {filteredResults.filter(r => r.score < 60).length}
+                    F Grades: {summary.gradeDistribution['F'] || 0}
                   </Typography>
                 </Box>
               </Paper>
@@ -265,36 +340,46 @@ const ResultView = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredResults.map((result) => (
-                    <TableRow key={result.id} hover>
-                      <TableCell>
-                        <Box className="student-cell">
-                          <Avatar className="student-avatar">
-                            {result.avatar}
-                          </Avatar>
-                          {result.name}
-                        </Box>
-                      </TableCell>
-                      <TableCell>{result.year}</TableCell>
-                      <TableCell>{result.department}</TableCell>
-                      <TableCell>{result.subject}</TableCell>
-                      <TableCell align="right">{result.score}</TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={result.grade} 
-                          size="small"
-                          className={`grade-chip grade-${result.grade.replace('+', '')}`}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={result.status} 
-                          size="small"
-                          className={`status-chip ${result.status.toLowerCase()}`}
-                        />
+                  {filteredResults.length > 0 ? (
+                    filteredResults.map((result) => (
+                      <TableRow key={result.id} hover>
+                        <TableCell>
+                          <Box className="student-cell">
+                            <Avatar className="student-avatar">
+                              {result.avatar}
+                            </Avatar>
+                            {result.name}
+                          </Box>
+                        </TableCell>
+                        <TableCell>{result.year}</TableCell>
+                        <TableCell>{result.department}</TableCell>
+                        <TableCell>{result.subject}</TableCell>
+                        <TableCell align="right">{result.score}</TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={result.grade} 
+                            size="small"
+                            className={`grade-chip grade-${result.grade.replace('+', '')}`}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={result.status} 
+                            size="small"
+                            className={`status-chip ${result.status.toLowerCase()}`}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center">
+                        <Typography variant="body2" color="text.secondary">
+                          No results found for the selected filters
+                        </Typography>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>

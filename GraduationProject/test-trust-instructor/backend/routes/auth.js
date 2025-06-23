@@ -753,6 +753,27 @@ router.get('/my-exams', async (req, res) => {
   }
 });
 
+// Get all exams (for ManageStudents page)
+router.get('/exams', async (req, res) => {
+  try {
+    const { instructor } = req.query;
+    
+    let query = {};
+    if (instructor) {
+      query.createdBy = instructor;
+    }
+    
+    const exams = await Exam.find(query)
+      .select('subject department year examDate examTime createdBy questionCount')
+      .sort({ examDate: -1, examTime: 1 });
+    
+    res.status(200).json(exams);
+  } catch (err) {
+    console.error('Error fetching exams:', err);
+    res.status(500).json({ message: 'Failed to fetch exams', error: err.message });
+  }
+});
+
 router.get('/alltoday_exams', async (req, res) => {
   try {
     const now = new Date();

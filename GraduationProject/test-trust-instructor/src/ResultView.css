@@ -198,81 +198,139 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    background-color: #f8fafc;
   }
   
   .MuiTableCell-root {
     padding: 12px 16px;
-    font-size: 0.85rem;
+    border-bottom: 1px solid #e2e8f0;
   }
   
   .MuiTableCell-head {
+    background-color: #f8fafc;
     font-weight: 600;
+    color: #475569;
   }
   
-  /* Student cell */
   .student-cell {
     display: flex;
     align-items: center;
+    gap: 12px;
   }
   
   .student-avatar {
-    width: 32px;
-    height: 32px;
-    font-size: 0.75rem;
-    margin-right: 12px;
-    background-color: #3f51b5;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.875rem !important;
+    background: linear-gradient(135deg, #3f51b5, #2196f3) !important;
   }
   
-  /* Chip styles */
+  /* Status chips */
   .status-chip {
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.7rem;
-    min-width: 70px;
+    font-weight: 500;
+    font-size: 0.75rem;
   }
   
   .status-chip.passed {
-    background-color: #ecfdf5;
-    color: #10b981;
+    background-color: #dcfce7;
+    color: #166534;
   }
   
   .status-chip.failed {
     background-color: #fef2f2;
-    color: #ef4444;
+    color: #dc2626;
   }
   
+  /* Grade chips */
   .grade-chip {
-    font-weight: 700;
-    min-width: 40px;
+    font-weight: 600;
     font-size: 0.75rem;
   }
   
   .grade-chip.grade-A {
-    background-color: #ecfdf5;
-    color: #10b981;
+    background-color: #dcfce7;
+    color: #166534;
   }
   
   .grade-chip.grade-B {
-    background-color: #eff6ff;
-    color: #3b82f6;
+    background-color: #dbeafe;
+    color: #1e40af;
   }
   
   .grade-chip.grade-C {
     background-color: #fef3c7;
-    color: #d97706;
+    color: #92400e;
   }
   
   .grade-chip.grade-F {
-    background-color: #fee2e2;
+    background-color: #fef2f2;
     color: #dc2626;
   }
+
+  /* Loading and Error States */
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    min-height: 400px;
+  }
+
+  .error-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    min-height: 400px;
+    gap: 16px;
+  }
+
+  .error-alert {
+    max-width: 500px;
+    width: 100%;
+  }
+
+  .retry-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background-color: #3f51b5;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+  }
+
+  .retry-button:hover {
+    background-color: #303f9f;
+    transform: translateY(-1px);
+  }
+
+  /* Empty state styles */
+  .empty-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 250px;
+    color: #64748b;
+    font-style: italic;
+  }
+
+  .no-data-message {
+    text-align: center;
+    color: #64748b;
+    font-style: italic;
+    padding: 20px;
+  }
   
-  /* Responsive adjustments */
   @media (max-width: 1200px) {
     .frame-container {
       width: 100%;
-      height: 600px;
+      height: auto;
+      min-height: 600px;
     }
     
     .card-title {
@@ -281,6 +339,6 @@
     
     .MuiTableCell-root {
       padding: 8px 12px;
-      font-size: 0.8rem;
+      font-size: 0.875rem;
     }
   }

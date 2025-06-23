@@ -9,6 +9,7 @@ import DiveInto from './DiveInto';
 import PracticeTests from './PracticeTests';
 import ExamPage from './ExamPage';
 import ChatBot from './components/ChatBot/ChatBot';
+import { useEffect } from 'react';
 
 // Navbar Component
 const Navbar = () => {
@@ -120,6 +121,90 @@ const HomePage = () => {
 const AppContent = () => {
   const location = useLocation();
   const hideNavbar = location.pathname === '/ExamPage';
+
+  useEffect(() => {
+    // Use the existing socket connection from socket.js
+    const socket = require('./socket').default;
+    
+    // Debug socket connection
+    console.log('App: Socket connection status:', socket.connected ? 'Connected' : 'Disconnected');
+
+    // Global exam start handler
+    socket.on('start_exam', (examData) => {
+      console.log('Global start_exam event received:', examData);
+      if (examData && examData._id) {
+        // Check if this is a power-on restart
+        const isPowerOnRestart = examData.action === 'power_on_restart';
+        
+        // Store exam data
+        localStorage.setItem('examId', examData._id);
+        localStorage.setItem('examData', JSON.stringify(examData));
+        
+        // Show appropriate notification
+        if (isPowerOnRestart) {
+          alert(`Your exam "${examData.subject}" has been restarted by your instructor. Continue where you left off.`);
+        } else {
+          alert(`Exam "${examData.subject}" has been started by your instructor. You will be redirected to the exam page.`);
+        }
+        
+        // Redirect to exam page
+        window.location.href = '/ExamPage';
+      }
+    });
+
+    // Global exam end handler (shutdown)
+    socket.on('exam_end', (data) => {
+      console.log('Global exam_end event received:', data);
+      
+      // Get current exam ID from localStorage
+      const currentExamId = localStorage.getItem('examId');
+      
+      // Only respond if this event is for the current exam
+      if (data && data.examId && data.examId === currentExamId) {
+        console.log('Global exam end event matches current exam, processing shutdown...');
+        
+        // Show notification to user
+        alert('Your exam has been terminated by the instructor. You will be redirected to the dashboard.');
+        
+        // Redirect to dashboard immediately
+        window.location.href = '/';
+      } else {
+        console.log('Global exam end event received but not for current exam:', data.examId, 'vs', currentExamId);
+      }
+    });
+
+    // Global exam failed handler
+    socket.on('exam_failed', (data) => {
+      console.log('Global exam_failed event received:', data);
+      
+      // Get current exam ID from localStorage
+      const currentExamId = localStorage.getItem('examId');
+      
+      // Only respond if this event is for the current exam
+      if (data && data.examId && data.examId === currentExamId) {
+        console.log('Global exam failed event matches current exam, processing failure...');
+        
+        // Clear saved answers since exam is failed
+        localStorage.removeItem('savedAnswers');
+        localStorage.removeItem('examShutdownTime');
+        
+        alert('Your exam has been marked as failed due to power-on window expiration. You will be redirected to the dashboard.');
+        
+        // Redirect to dashboard
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 3000);
+      } else {
+        console.log('Global exam failed event received but not for current exam:', data.examId, 'vs', currentExamId);
+      }
+    });
+
+    return () => {
+      socket.off('start_exam');
+      socket.off('exam_end');
+      socket.off('exam_failed');
+    };
+  }, []);
 
   return (
     <div className="app">

@@ -23,7 +23,7 @@ const AddExam2 = () => {
   const [examReady, setIsexamReady] = useState(false);
 
 
-  const autoCorrection = examData?.autoCorrection || false;
+  const autoCorrection = examData?.autoCorrection ?? true;
 
   useEffect(() => {
     if (!examData) {

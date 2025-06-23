@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import './ExamPage.css';
 import { FaFlag, FaCalculator, FaPalette, FaExpand, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import axios from 'axios';
+import io from 'socket.io-client';
+import socket from './socket';
 
 const ExamPage = () => {
   // State declarations
@@ -19,6 +21,7 @@ const ExamPage = () => {
   const [loading, setLoading] = useState(true);
   const [submissionStatus, setSubmissionStatus] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [hasJoinedExam, setHasJoinedExam] = useState(false); // Flag to prevent multiple joins
   const whiteboardRef = useRef(null);
   
   const currentQuestion = questions[currentQuestionIndex];
@@ -55,38 +58,71 @@ const ExamPage = () => {
   };
 
   const handleAnswerSelect = (choiceIndex) => {
-  const questionId = currentQuestion._id;
-  let answerValue;
-  let selectedValue;
+    const questionId = currentQuestion._id;
+    let answerValue;
+    let selectedValue;
 
-  switch(currentQuestion.type) {
-    case 'trueFalse':
-      answerValue = choiceIndex === 0 ? 'True' : 'False';
-      selectedValue = choiceIndex;
-      break;
+    // Debug: Check socket connection status BEFORE answer selection
+    const socket = require('./socket').default;
+    console.log('=== ANSWER SELECTION START ===');
+    console.log('Answer selection - Socket connected:', socket.connected, 'Socket ID:', socket.id);
+    console.log('Question ID:', questionId, 'Choice Index:', choiceIndex);
 
-    case 'mcq':
-      answerValue = currentQuestion.choices[choiceIndex];
-      selectedValue = choiceIndex;
-      break;
+    switch(currentQuestion.type) {
+      case 'trueFalse':
+        answerValue = choiceIndex === 0 ? 'True' : 'False';
+        selectedValue = choiceIndex;
+        break;
 
-    default:
-      answerValue = '';
-      selectedValue = '';
-  }
+      case 'mcq':
+        answerValue = currentQuestion.choices[choiceIndex];
+        selectedValue = choiceIndex;
+        break;
 
-  setAnswers(prev => ({
-    ...prev,
-    [questionId]: {
-      selected: selectedValue,
-      answerText: answerValue, 
-      timestamp: new Date().toISOString()
+      default:
+        answerValue = '';
+        selectedValue = '';
     }
-  }));
-};
+
+    console.log('Setting answer for question:', questionId, 'Answer:', answerValue);
+
+    // Send activity update when answering
+    const nationalId = localStorage.getItem('nationalId') || student?.nationalId;
+    const examId = examData?._id || localStorage.getItem('examId');
+    
+    if (socket.connected && examId && nationalId) {
+      console.log('Sending activity update for answer selection');
+      socket.emit('student_activity', nationalId, examId);
+    } else {
+      console.log('Cannot send activity update - missing data:', {
+        socketConnected: socket.connected,
+        examId: examId,
+        nationalId: nationalId
+      });
+    }
+
+    // Check socket connection status AFTER answer selection
+    console.log('Answer selection - Socket connected AFTER:', socket.connected, 'Socket ID:', socket.id);
+    console.log('=== ANSWER SELECTION END ===');
+
+    setAnswers(prev => ({
+      ...prev,
+      [questionId]: {
+        selected: selectedValue,
+        answerText: answerValue, 
+        timestamp: new Date().toISOString()
+      }
+    }));
+  };
 
   const handleWrittenAnswer = (e) => {
     const questionId = currentQuestion._id;
+    
+    // Debug: Check socket connection status
+    const socket = require('./socket').default;
+    console.log('Written answer - Socket connected:', socket.connected, 'Socket ID:', socket.id);
+    console.log('Setting written answer for question:', questionId, 'Answer:', e.target.value);
+    
     setAnswers(prev => ({
       ...prev,
       [questionId]: {
@@ -100,6 +136,8 @@ const ExamPage = () => {
   const submitAnswers = async () => {
     try {
       console.log('Submit button clicked');
+      console.log('Current answers state:', answers);
+      console.log('Questions count:', questions.length);
       setSubmissionStatus('submitting');
       
       // Debug: Log all localStorage items
@@ -123,6 +161,10 @@ const ExamPage = () => {
         return;
       }
 
+      // Check socket connection before submission
+      const socket = require('./socket').default;
+      console.log('Submit - Socket connected:', socket.connected, 'Socket ID:', socket.id);
+
       const payload = {
         studentNationalId: nationalId, 
         examId: examData._id,
@@ -133,6 +175,7 @@ const ExamPage = () => {
       };
 
       console.log('Submitting answers with payload:', JSON.stringify(payload, null, 2));
+      console.log('Number of answered questions:', payload.answers.length);
       
       try {
         console.log('Sending request to server with payload:', JSON.stringify(payload, null, 2));
@@ -153,6 +196,11 @@ const ExamPage = () => {
         
         if (response.status === 200 || response.status === 201) {
           setSubmissionStatus('success');
+          
+          // Clear saved answers since exam is completed
+          localStorage.removeItem('savedAnswers');
+          localStorage.removeItem('examShutdownTime');
+          
           setTimeout(() => {
             window.location.href = '/';
           }, 2000);
@@ -212,12 +260,44 @@ const ExamPage = () => {
     }
   };
 
+  // Manual student join function for debugging
+  const manualStudentJoin = () => {
+    const socket = require('./socket').default;
+    const nationalId = localStorage.getItem('nationalId') || student?.nationalId;
+    const examId = examData?._id || localStorage.getItem('examId');
+    
+    console.log('=== MANUAL STUDENT JOIN ===');
+    console.log('Socket connected:', socket.connected);
+    console.log('Socket ID:', socket.id);
+    console.log('National ID:', nationalId);
+    console.log('Exam ID:', examId);
+    console.log('Has already joined:', hasJoinedExam);
+    
+    if (hasJoinedExam) {
+      console.log('Student already joined, resetting join flag for manual rejoin');
+      setHasJoinedExam(false);
+    }
+    
+    if (socket.connected && nationalId && examId) {
+      console.log('Emitting manual student_join');
+      socket.emit('student_join', nationalId, examId);
+      setHasJoinedExam(true);
+    } else {
+      console.log('Cannot join - missing data:', {
+        socketConnected: socket.connected,
+        nationalId: nationalId,
+        examId: examId
+      });
+    }
+  };
+
   // Effects
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Get student ID from localStorage (stored as 'studentId' during login)
         const studentId = localStorage.getItem('studentId');
+        const nationalId = localStorage.getItem('nationalId');
         const examDataString = localStorage.getItem('examData');
         const examData = examDataString ? JSON.parse(examDataString) : null;
         
@@ -226,6 +306,56 @@ const ExamPage = () => {
         }
 
         setExamData(examData);
+
+        // Emit student_join for WebSocket tracking
+        if (!hasJoinedExam) {
+          if (nationalId) {
+            console.log('Emitting student_join with nationalId:', nationalId, 'for exam:', examData._id);
+            // Ensure socket is connected before emitting
+            if (socket.connected) {
+              socket.emit('student_join', nationalId, examData._id);
+              setHasJoinedExam(true);
+            } else {
+              console.log('Socket not connected, waiting for connection...');
+              socket.on('connect', () => {
+                console.log('Socket connected, now emitting student_join');
+                socket.emit('student_join', nationalId, examData._id);
+                setHasJoinedExam(true);
+              });
+            }
+          } else if (studentId) {
+            console.log('Emitting student_join with studentId:', studentId, 'for exam:', examData._id);
+            // Ensure socket is connected before emitting
+            if (socket.connected) {
+              socket.emit('student_join', studentId, examData._id);
+              setHasJoinedExam(true);
+            } else {
+              console.log('Socket not connected, waiting for connection...');
+              socket.on('connect', () => {
+                console.log('Socket connected, now emitting student_join');
+                socket.emit('student_join', studentId, examData._id);
+                setHasJoinedExam(true);
+              });
+            }
+          }
+        } else {
+          console.log('Student already joined exam, skipping join event');
+        }
+
+        // Check for saved answers (in case of restart after shutdown)
+        const savedAnswers = localStorage.getItem('savedAnswers');
+        if (savedAnswers) {
+          try {
+            const parsedAnswers = JSON.parse(savedAnswers);
+            setAnswers(parsedAnswers);
+            console.log('Restored saved answers from shutdown:', parsedAnswers);
+            
+            // Show notification about restored answers
+            alert('Your previous answers have been restored. Continue where you left off.');
+          } catch (error) {
+            console.error('Error restoring saved answers:', error);
+          }
+        }
 
         if (studentId) {
           console.log('Fetching student data for studentId:', studentId);
@@ -308,6 +438,224 @@ const ExamPage = () => {
 
     fetchData();
   }, []);
+
+  // Socket.IO event listeners for remote control
+  useEffect(() => {
+    // Use the existing socket connection from socket.js
+    const socket = require('./socket').default;
+    
+    // Debug socket connection
+    console.log('Socket connection status:', socket.connected ? 'Connected' : 'Disconnected');
+    console.log('Socket ID:', socket.id);
+    
+    // Test if we can emit events
+    socket.emit('test_message', 'ExamPage component loaded');
+    
+    // Listen for test response
+    socket.on('test_response', (message) => {
+      console.log('Test response received:', message);
+    });
+    
+    // Listen for exam start signal
+    socket.on('start_exam', (examData) => {
+      console.log('Received start_exam signal:', examData);
+      if (examData && examData._id) {
+        // Check if this is a power-on restart
+        const isPowerOnRestart = examData.action === 'power_on_restart';
+        
+        if (isPowerOnRestart) {
+          console.log('Power-on restart detected, restoring saved answers...');
+          
+          // Restore saved answers if available
+          const savedAnswers = localStorage.getItem('savedAnswers');
+          if (savedAnswers) {
+            try {
+              const parsedAnswers = JSON.parse(savedAnswers);
+              setAnswers(parsedAnswers);
+              console.log('Restored saved answers for power-on restart:', parsedAnswers);
+            } catch (error) {
+              console.error('Error restoring saved answers for power-on restart:', error);
+            }
+          }
+          
+          // Show notification for restart
+          alert('Your exam has been restarted. Continue where you left off.');
+        } else {
+          // Regular exam start - clear any previous saved answers
+          localStorage.removeItem('savedAnswers');
+          localStorage.removeItem('examShutdownTime');
+          console.log('Regular exam start - cleared previous saved answers');
+        }
+        
+        // Store exam data and redirect to exam page
+        localStorage.setItem('examId', examData._id);
+        localStorage.setItem('examData', JSON.stringify(examData));
+        
+        // If we're not already on the exam page, navigate to it
+        if (window.location.pathname !== '/ExamPage') {
+          window.location.href = '/ExamPage';
+        } else {
+          // If we're already on the exam page, reload to get the new exam data
+          window.location.reload();
+        }
+      }
+    });
+
+    // Listen for exam end signal (shutdown)
+    socket.on('exam_end', (data) => {
+      console.log('Received exam_end signal:', data);
+      console.log('Current exam ID from localStorage:', localStorage.getItem('examId'));
+      console.log('Data exam ID type:', typeof data.examId);
+      console.log('LocalStorage exam ID type:', typeof localStorage.getItem('examId'));
+      console.log('Exam IDs match?', data.examId === localStorage.getItem('examId'));
+      
+      // Get current exam ID from localStorage
+      const currentExamId = localStorage.getItem('examId');
+      
+      // Only respond if this event is for the current exam
+      if (data && data.examId && data.examId === currentExamId) {
+        console.log('Exam end event matches current exam, processing shutdown...');
+        
+        // Save current answers before redirecting
+        const currentAnswers = answers;
+        console.log('Saving current answers before shutdown:', currentAnswers);
+        
+        if (Object.keys(currentAnswers).length > 0) {
+          localStorage.setItem('savedAnswers', JSON.stringify(currentAnswers));
+          localStorage.setItem('examShutdownTime', new Date().toISOString());
+          console.log('Answers saved to localStorage');
+        }
+        
+        // Show immediate notification
+        alert('Your exam has been terminated by the instructor. You will be redirected to the dashboard.');
+        
+        // Clean up WebSocket connection before redirect
+        console.log('Cleaning up WebSocket connection before redirect...');
+        const socket = require('./socket').default;
+        
+        // Emit manual disconnect event to notify instructor
+        const nationalId = localStorage.getItem('nationalId');
+        const examId = localStorage.getItem('examId');
+        if (nationalId && examId) {
+          console.log('Emitting manual student_disconnect event...');
+          socket.emit('student_disconnect', nationalId, examId);
+        }
+        
+        socket.disconnect();
+        
+        // Clear exam data from localStorage
+        localStorage.removeItem('examId');
+        localStorage.removeItem('examData');
+        
+        // Redirect immediately to dashboard
+        console.log('Redirecting to dashboard...');
+        window.location.href = '/';
+      } else {
+        console.log('Exam end event received but not for current exam:', data.examId, 'vs', currentExamId);
+      }
+    });
+
+    // Listen for exam failed signal
+    socket.on('exam_failed', (data) => {
+      console.log('Received exam_failed signal:', data);
+      
+      // Get current exam ID from localStorage
+      const currentExamId = localStorage.getItem('examId');
+      
+      // Only respond if this event is for the current exam
+      if (data && data.examId && data.examId === currentExamId) {
+        console.log('Exam failed event matches current exam, processing failure...');
+        
+        // Clear saved answers since exam is failed
+        localStorage.removeItem('savedAnswers');
+        localStorage.removeItem('examShutdownTime');
+        
+        alert('Your exam has been marked as failed due to power-on window expiration. You will be redirected to the dashboard.');
+        
+        // Clean up WebSocket connection before redirect
+        console.log('Cleaning up WebSocket connection before redirect (exam failed)...');
+        const socket = require('./socket').default;
+        
+        // Emit manual disconnect event to notify instructor
+        const nationalId = localStorage.getItem('nationalId');
+        const examId = localStorage.getItem('examId');
+        if (nationalId && examId) {
+          console.log('Emitting manual student_disconnect event (exam failed)...');
+          socket.emit('student_disconnect', nationalId, examId);
+        }
+        
+        socket.disconnect();
+        
+        // Clear exam data from localStorage
+        localStorage.removeItem('examId');
+        localStorage.removeItem('examData');
+        
+        // Redirect to dashboard
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 3000);
+      } else {
+        console.log('Exam failed event received but not for current exam:', data.examId, 'vs', currentExamId);
+      }
+    });
+    
+    // Listen for remote shutdown signal (legacy)
+    socket.on('remote_shutdown', (data) => {
+      console.log('Received remote shutdown signal:', data);
+      alert('Your exam session has been terminated by the instructor. You will be redirected to the main page.');
+      
+      // Clean up WebSocket connection before redirect
+      console.log('Cleaning up WebSocket connection before redirect (remote shutdown)...');
+      const socket = require('./socket').default;
+      
+      // Emit manual disconnect event to notify instructor
+      const nationalId = localStorage.getItem('nationalId');
+      const examId = localStorage.getItem('examId');
+      if (nationalId && examId) {
+        console.log('Emitting manual student_disconnect event (remote shutdown)...');
+        socket.emit('student_disconnect', nationalId, examId);
+      }
+      
+      socket.disconnect();
+      
+      // Clear exam data from localStorage
+      localStorage.removeItem('examId');
+      localStorage.removeItem('examData');
+      
+      // Auto-submit answers if possible
+      if (Object.keys(answers).length > 0) {
+        submitAnswers();
+      } else {
+        // Redirect to main page
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+      }
+    });
+
+    // Listen for remote power-on signal (legacy)
+    socket.on('remote_poweron', (data) => {
+      console.log('Received remote power-on signal:', data);
+      alert('The instructor has requested you to reconnect to the exam. Please refresh the page.');
+      
+      // Optionally auto-refresh the page
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+    });
+
+    return () => {
+      socket.off('start_exam');
+      socket.off('exam_end');
+      socket.off('exam_failed');
+      socket.off('remote_shutdown');
+      socket.off('remote_poweron');
+      socket.off('test_response');
+      // Do NOT emit student_disconnect on unmount!
+      // Debug: Log when ExamPage is unmounting, cleaning up WebSocket...
+      console.log('ExamPage component unmounting, cleaning up WebSocket...');
+    };
+  }, [answers]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -396,6 +744,56 @@ const ExamPage = () => {
       };
     }
   }, [showWhiteboard]);
+
+  // Socket connection monitoring
+  useEffect(() => {
+    const socket = require('./socket').default;
+    
+    // Check connection status every 5 seconds
+    const connectionCheck = setInterval(() => {
+      console.log('Socket connection check - Connected:', socket.connected, 'ID:', socket.id);
+      
+      // If disconnected, try to reconnect
+      if (!socket.connected) {
+        console.log('Socket disconnected, attempting to reconnect...');
+        socket.connect();
+        
+        // Re-emit student_join after reconnection
+        const nationalId = localStorage.getItem('nationalId');
+        const examId = localStorage.getItem('examId');
+        if (nationalId && examId) {
+          console.log('Re-emitting student_join after reconnection...');
+          socket.emit('student_join', nationalId, examId);
+        }
+      }
+    }, 5000);
+    
+    return () => {
+      clearInterval(connectionCheck);
+    };
+  }, []);
+
+  // Add periodic activity update
+  useEffect(() => {
+    const activityInterval = setInterval(() => {
+      const socket = require('./socket').default;
+      const nationalId = localStorage.getItem('nationalId') || student?.nationalId;
+      const examId = examData?._id || localStorage.getItem('examId');
+      
+      if (socket.connected && examId && nationalId) {
+        console.log('Sending periodic activity update');
+        socket.emit('student_activity', nationalId, examId);
+      } else {
+        console.log('Cannot send periodic activity update - missing data:', {
+          socketConnected: socket.connected,
+          examId: examId,
+          nationalId: nationalId
+        });
+      }
+    }, 30000); // Update every 30 seconds
+
+    return () => clearInterval(activityInterval);
+  }, [examData, student]);
 
   // Render
   if (loading) {
@@ -499,6 +897,18 @@ const ExamPage = () => {
             ⏱️ {formatTime(timeLeft)}
           </div>
           
+          {/* Socket connection status */}
+          <div className="socket-status" style={{ 
+            padding: '5px 10px', 
+            borderRadius: '4px', 
+            fontSize: '12px',
+            backgroundColor: require('./socket').default.connected ? '#4CAF50' : '#f44336',
+            color: 'white',
+            marginRight: '10px'
+          }}>
+            {require('./socket').default.connected ? '🟢 Connected' : '🔴 Disconnected'}
+          </div>
+          
           <div className="tool-buttons">
             <button 
               className="tool-btn"
@@ -520,6 +930,15 @@ const ExamPage = () => {
               title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
             >
               <FaExpand />
+            </button>
+            {/* Debug button for manual student join */}
+            <button 
+              className="tool-btn debug-btn"
+              onClick={manualStudentJoin}
+              title="Debug: Manual Student Join"
+              style={{ backgroundColor: '#ff6b6b', color: 'white' }}
+            >
+              🔧
             </button>
           </div>
           

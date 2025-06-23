@@ -53,9 +53,14 @@ const PracticeTests = () => {
     fetchPracticeTests();
 
     // Socket setup
+    const nationalId = localStorage.getItem('nationalId');
     const studentId = localStorage.getItem('studentId');
-    if (studentId) {
-      socket.emit('student_join', studentId);
+    const examId = localStorage.getItem('examId');
+    if (nationalId) {
+      socket.emit('student_join', nationalId, examId);
+    } else if (studentId) {
+      // Fallback to studentId if nationalId is not available
+      socket.emit('student_join', studentId, examId);
     }
 
     socket.on('start_exam', (examData) => {
@@ -109,7 +114,7 @@ const PracticeTests = () => {
 
   const startExam = (examId, isExam = false) => {
     localStorage.setItem('examId', examId);
-    navigate(isExam ? '/exam' : `/practice-test/${examId}`);
+    navigate(isExam ? '/ExamPage' : `/practice-test/${examId}`);
   };
 
   return (

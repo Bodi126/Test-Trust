@@ -100,8 +100,59 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/testtrust
     useNewUrlParser: true,
     useUnifiedTopology: true,
     serverSelectionTimeoutMS: 5000
-}).then(() => {
+}).then(async () => {
     console.log('Connected to TestTrust database');
+    
+    // Setup database indexes and migrate data
+    try {
+        const Result = require('./models/result');
+        
+        console.log('🔄 Starting database migration...');
+        
+        // Drop old conflicting indexes if they exist
+        try {
+            await Result.collection.dropIndex('examId_1_studentNationalId_1');
+            console.log('✅ Dropped old conflicting index: examId_1_studentNationalId_1');
+        } catch (dropError) {
+            console.log('ℹ️ Old index examId_1_studentNationalId_1 not found (already removed)');
+        }
+        
+        // Migrate existing documents with old field names
+        console.log('🔄 Migrating existing documents...');
+        const updateResult = await Result.updateMany(
+            { 
+                $or: [
+                    { examId: { $exists: true, $ne: null } },
+                    { studentNationalId: { $exists: true, $ne: null } }
+                ]
+            },
+            [
+                {
+                    $set: {
+                        exam: { $ifNull: ['$exam', '$examId'] },
+                        student: { $ifNull: ['$student', '$studentNationalId'] }
+                    }
+                },
+                {
+                    $unset: ['examId', 'studentNationalId']
+                }
+            ]
+        );
+        
+        if (updateResult.modifiedCount > 0) {
+            console.log(`✅ Migrated ${updateResult.modifiedCount} documents`);
+        } else {
+            console.log('ℹ️ No documents needed migration');
+        }
+        
+        // Ensure correct index exists
+        await Result.collection.createIndex({ exam: 1, student: 1 }, { unique: true });
+        console.log('✅ Created/verified correct index: exam_1_student_1');
+        
+        console.log('✅ Database migration completed successfully');
+    } catch (indexError) {
+        console.error('⚠️ Error during database migration:', indexError);
+    }
 }).catch((err) => {
     console.log('Error connecting to database', err);
 });

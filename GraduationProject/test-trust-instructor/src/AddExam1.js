@@ -28,7 +28,7 @@ const AddExam1 = () => {
     examDuration: '',
     totalMarks: '',
     questionCount: '',
-    autoCorrection: false,
+    autoCorrection: true,
     archiveExam: false
   });
   
@@ -260,20 +260,13 @@ const AddExam1 = () => {
             {errors.questionCount && <span className="error">{errors.questionCount}</span>}
           </div>
 
-          <div className="form-group checkbox-group">
-            <label className="checkbox-container">
-              <input 
-                type="checkbox" 
-                name="autoCorrection" 
-                checked={values.autoCorrection} 
-                onChange={handleCheckboxChange} 
-              />
-              <span className="checkmark"></span>
-              <span className="checkbox-label">
-                Auto Correction
-                <span className="tooltip">We'll correct the exam automatically (total marks will be distributed evenly)</span>
-              </span>
-            </label>
+          <div className="form-group">
+            <div className="auto-correction-info">
+              <p className="info-text">
+                <span className="info-icon">ℹ️</span>
+                Auto Correction is enabled by default. Marks will be distributed evenly across all questions.
+              </p>
+            </div>
           </div>
 
           <div className="form-group checkbox-group">

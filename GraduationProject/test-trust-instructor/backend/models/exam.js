@@ -44,7 +44,7 @@ const examSchema = new mongoose.Schema({
     },
     autoCorrection: {
         type: Boolean,
-        default: false
+        default: true // Changed from false to true (now mandatory)
     },
     archiveExam: {
         type: Boolean,

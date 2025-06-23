@@ -106,12 +106,19 @@ function Dashboard() {
   };
 
   const handleStartExam = (exam) => {
-  console.log("🚀 Starting exam with data:", exam);
-  socket.emit('start_exam', exam); 
-  setExamData(exam);
-  setExamReady(true);
-  navigate('/Dashboard');
-};
+    console.log("🚀 Starting exam with data:", exam);
+    socket.emit('start_exam', exam); 
+    setExamData(exam);
+    setExamReady(true);
+    
+    // Navigate to ManageStudents with the started exam data
+    navigate('/ManageStudents', { 
+      state: { 
+        startedExam: exam,
+        autoManage: true 
+      } 
+    });
+  };
 
 
   // Filter exams for today
@@ -374,23 +381,66 @@ function Dashboard() {
           ) : activeTab === 'current' ? (
             <div className="status-cards">
               {todaysExams.length > 0 ? (
-                todaysExams.map((exam) => (
-                  <div key={exam._id} className="status-card">
-                    <div className="exam-info">
-                      <h4>{exam.subject}</h4>
-                      <span className="status-badge">
-                        {new Date(exam.examDate) > new Date() ? 'Upcoming' : 'Ongoing'}
-                      </span>
+                todaysExams.map((exam) => {
+                  // Calculate accurate exam status using the same logic
+                  const examDate = new Date(exam.examDate);
+                  const examTime = exam.examTime; // "09:30" format
+                  const [examHour, examMinute] = examTime.split(':').map(Number);
+                  
+                  // Create the full exam datetime
+                  const examDateTime = new Date(examDate);
+                  examDateTime.setHours(examHour, examMinute, 0, 0);
+                  
+                  const now = new Date();
+                  const timeUntilExam = examDateTime - now;
+                  const isOngoing = timeUntilExam <= 0;
+                  
+                  // Calculate time remaining for display
+                  const hoursUntilExam = Math.floor(timeUntilExam / (1000 * 60 * 60));
+                  const minutesUntilExam = Math.floor((timeUntilExam % (1000 * 60 * 60)) / (1000 * 60));
+                  const totalMinutesUntilExam = Math.floor(timeUntilExam / (1000 * 60));
+                  
+                  // Determine status and styling
+                  let statusText = 'Upcoming';
+                  let statusClass = 'upcoming';
+                  
+                  if (isOngoing) {
+                    statusText = 'Ongoing';
+                    statusClass = 'ongoing';
+                  } else if (totalMinutesUntilExam <= 60 && totalMinutesUntilExam > 0) {
+                    statusText = 'Starting Soon';
+                    statusClass = 'urgent';
+                  } else if (totalMinutesUntilExam <= 120 && totalMinutesUntilExam > 60) {
+                    statusText = 'Starting Soon';
+                    statusClass = 'warning';
+                  }
+                  
+                  return (
+                    <div key={exam._id} className="status-card">
+                      <div className="exam-info">
+                        <h4>{exam.subject}</h4>
+                        <span className={`status-badge ${statusClass}`}>
+                          {statusText}
+                        </span>
+                      </div>
+                      <div className="exam-meta">
+                        <span>{exam.department} - {exam.year}</span>
+                        <span>{formatTime(exam.examTime)}</span>
+                        {!isOngoing && totalMinutesUntilExam > 0 && (
+                          <span className="time-remaining">
+                            {hoursUntilExam > 0 
+                              ? `${hoursUntilExam}h ${minutesUntilExam}m left`
+                              : `${minutesUntilExam}m left`
+                            }
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="exam-meta">
-                      <span>{exam.department} - {exam.year}</span>
-                      <span>{formatTime(exam.examTime)}</span>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="no-exams">No exams scheduled for today</div>
-          )}
+              )}
             </div>
             
           ) : (
@@ -438,16 +488,142 @@ function Dashboard() {
             <p className="stat-value">-</p>
           </div>
         </div>
-        {todaysExams.map((exam, index) => (
-  <div key={exam._id} className="exam-card">
-    <h4>{exam.subject}</h4>
-    <p>Date: {formatDate(exam.examDate)}</p>
-    <p>Time: {formatTime(exam.examTime)}</p>
-    <button onClick={() => handleStartExam(exam)}>
-      Start
-    </button>
-  </div>
-))}
+
+        {/* Today's Exams Section - Styled */}
+        <div className="todays-exams-section">
+          <div className="todays-exams-header">
+            <div className="todays-exams-icon">
+              <i className="fas fa-calendar-day"></i>
+            </div>
+            <h3>Today's Exams</h3>
+          </div>
+          
+          {todaysExams.length > 0 ? (
+            <div className="todays-exams-grid">
+              {todaysExams.map((exam, index) => {
+                const examDate = new Date(exam.examDate);
+                const examTime = exam.examTime; // "09:30" format
+                const [examHour, examMinute] = examTime.split(':').map(Number);
+                
+                // Create the full exam datetime
+                const examDateTime = new Date(examDate);
+                examDateTime.setHours(examHour, examMinute, 0, 0);
+                
+                const now = new Date();
+                const timeUntilExam = examDateTime - now;
+                const isOngoing = timeUntilExam <= 0;
+                
+                // Calculate hours and minutes remaining
+                const hoursUntilExam = Math.floor(timeUntilExam / (1000 * 60 * 60));
+                const minutesUntilExam = Math.floor((timeUntilExam % (1000 * 60 * 60)) / (1000 * 60));
+                const totalMinutesUntilExam = Math.floor(timeUntilExam / (1000 * 60));
+                
+                // Format time remaining message
+                const getTimeRemainingMessage = () => {
+                  if (totalMinutesUntilExam <= 0) return null;
+                  
+                  if (hoursUntilExam > 0) {
+                    if (minutesUntilExam > 0) {
+                      return `Starts in ${hoursUntilExam}h ${minutesUntilExam}m`;
+                    } else {
+                      return `Starts in ${hoursUntilExam} hour${hoursUntilExam > 1 ? 's' : ''}`;
+                    }
+                  } else if (minutesUntilExam > 0) {
+                    return `Starts in ${minutesUntilExam} minute${minutesUntilExam > 1 ? 's' : ''}`;
+                  }
+                  return null;
+                };
+                
+                const timeRemainingMessage = getTimeRemainingMessage();
+                const isUrgent = totalMinutesUntilExam <= 60 && totalMinutesUntilExam > 0;
+                
+                return (
+                  <div key={exam._id} className="todays-exam-card">
+                    <div className="todays-exam-header">
+                      <h4 className="todays-exam-subject">{exam.subject}</h4>
+                      <span className={`todays-exam-status ${isOngoing ? 'ongoing' : 'upcoming'}`}>
+                        {isOngoing ? 'Ongoing' : 'Upcoming'}
+                      </span>
+                    </div>
+                    
+                    <div className="todays-exam-details">
+                      <div className="todays-exam-detail">
+                        <div className="todays-exam-detail-icon">
+                          <i className="fas fa-calendar"></i>
+                        </div>
+                        <span className="todays-exam-detail-text">
+                          {formatDate(exam.examDate)}
+                        </span>
+                      </div>
+                      
+                      <div className="todays-exam-detail">
+                        <div className="todays-exam-detail-icon">
+                          <i className="fas fa-clock"></i>
+                        </div>
+                        <span className="todays-exam-detail-text">
+                          {formatTime(exam.examTime)}
+                        </span>
+                      </div>
+                      
+                      <div className="todays-exam-detail">
+                        <div className="todays-exam-detail-icon">
+                          <i className="fas fa-building"></i>
+                        </div>
+                        <span className="todays-exam-detail-text">
+                          {exam.department} - {exam.year}
+                        </span>
+                      </div>
+                      
+                      <div className="todays-exam-detail">
+                        <div className="todays-exam-detail-icon">
+                          <i className="fas fa-users"></i>
+                        </div>
+                        <span className="todays-exam-detail-text">
+                          {exam.studentCount} Students
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {timeRemainingMessage && (
+                      <div className={`todays-exam-time-remaining ${isUrgent ? 'urgent' : ''}`}>
+                        {timeRemainingMessage}
+                      </div>
+                    )}
+                    
+                    <div className="todays-exam-actions">
+                      <button 
+                        className="todays-exam-start-btn"
+                        onClick={() => handleStartExam(exam)}
+                      >
+                        <i className="fas fa-play"></i>
+                        Start Exam
+                      </button>
+                      
+                      <button 
+                        className="todays-exam-view-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/ManageExam/${exam._id}`);
+                        }}
+                      >
+                        <i className="fas fa-eye"></i>
+                        View
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="todays-exam-empty">
+              <div className="todays-exam-empty-icon">
+                <i className="fas fa-calendar-times"></i>
+              </div>
+              <h4>No Exams Today</h4>
+              <p>You have no exams scheduled for today. Check the upcoming tab or calendar for future exams.</p>
+            </div>
+          )}
+        </div>
 
       </div>
       
